@@ -1,0 +1,26 @@
+# dependencies
+/node_modules
+
+# build output
+/.next/
+/out/
+/build
+/dist
+
+# env / secrets
+.env
+.env*.local
+
+# local databases
+*.db
+*.db-journal
+
+# logs & OS cruft
+*.log
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
+*.tsbuildinfo
