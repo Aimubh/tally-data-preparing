@@ -1,7 +1,9 @@
 # dependencies
 /node_modules
+/.pnp
+.pnp.js
 
-# build output
+# next.js
 /.next/
 /out/
 /build
@@ -11,16 +13,20 @@
 .env
 .env*.local
 
-# local databases
+# local databases (Postgres data lives in the server, not the repo)
 *.db
 *.db-journal
 
 # logs & OS cruft
 *.log
+npm-debug.log*
 .DS_Store
 Thumbs.db
 
 # editor
 .vscode/
 .idea/
+
+# typescript
 *.tsbuildinfo
+next-env.d.ts

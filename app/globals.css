@@ -1,0 +1,880 @@
+/* ============================================================================
+   Group MIS Console — PlayStation design system applied to a data dashboard.
+   Tokens, type, shape & elevation vocabulary come straight from the PlayStation
+   spec (PS Blue #0070d1 chrome, SST-substitute Roboto Light 300 display + Inter
+   body, full-pill CTAs + 8px cards + 4px inputs, flat-on-canvas elevation).
+   Chrome (sidebar/nav) is PlayStation black; content is light canvas.
+   ============================================================================ */
+:root {
+  /* --- Brand & accent --- */
+  --primary: #0070d1;
+  --primary-pressed: #0064b7;
+  --primary-active: #004d8d;
+  --on-primary: #ffffff;
+  --commerce: #d53b00;
+  --commerce-pressed: #aa2f00;
+
+  /* --- Surface: dark chrome --- */
+  --canvas-dark: #000000;
+  --ink-deep: #121314;
+  --ink-elevated: #181818;
+  --charcoal: #1f2024;
+
+  /* --- Surface: light canvas --- */
+  --canvas-light: #ffffff;
+  --surface-soft: #f3f3f3;
+  --surface-card: #f5f7fa; /* cool-blue-tinted card */
+  --hairline-light: #ececec;
+  --hairline-dark: rgba(229, 229, 229, 0.2);
+
+  /* --- Text --- */
+  --ink: #000000;
+  --body-light: rgba(0, 0, 0, 0.6);
+  --mute-light: #6b6b6b;
+  --ash-light: #cccccc;
+  --on-dark: #ffffff;
+  --body-dark: rgba(255, 255, 255, 0.7);
+  --on-dark-mute: #cccccc;
+  --mute-dark: rgba(229, 229, 229, 0.55);
+
+  /* --- Semantic --- */
+  --warning: #c81b3a;
+  --link-light: #0064b7;
+  --link-dark: #53b1ff;
+  --pos: #0a7d3f; /* profit / positive figures (kept legible on light canvas) */
+
+  /* --- Shape (4 / 8 / pill rhythm) --- */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 16px;
+  --r-full: 9999px;
+
+  /* --- Spacing (8px base) --- */
+  --s-xxs: 4px;
+  --s-xs: 8px;
+  --s-sm: 12px;
+  --s-md: 16px;
+  --s-lg: 24px;
+  --s-xl: 32px;
+  --s-xxl: 48px;
+
+  --sidebar-w: 248px;
+  --sidebar-w-collapsed: 68px;
+  --topbar-h: 64px;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  --font-display: var(--font-display), "Roboto", Arial, Helvetica, sans-serif;
+  --font-body: var(--font-body), "Inter", Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--canvas-light);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: 0.1px;
+  -webkit-font-smoothing: antialiased;
+}
+a {
+  color: var(--link-light);
+  text-decoration: none;
+}
+
+/* Display type = Roboto Light 300, signature airy PS voice. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 300;
+  line-height: 1.25;
+}
+
+/* --- App layout ----------------------------------------------------------- */
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: 100vh;
+  transition: grid-template-columns 220ms var(--ease);
+}
+.app-shell.collapsed {
+  grid-template-columns: var(--sidebar-w-collapsed) 1fr;
+}
+
+/* ============================================================================
+   Sidebar — PlayStation black chrome
+   ============================================================================ */
+.sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  background: var(--canvas-dark);
+  color: var(--on-dark);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--hairline-dark);
+}
+.sidebar .group-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-sm);
+  padding: 0 var(--s-md);
+  min-height: var(--topbar-h);
+  border-bottom: 1px solid var(--hairline-dark);
+}
+.sidebar .group-logo {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+  background: var(--primary);
+  color: var(--on-primary);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.4px;
+}
+.sidebar .group-name {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 20px;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 150ms var(--ease);
+}
+.collapsed .sidebar .group-name {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar .nav {
+  position: relative;
+  padding: var(--s-sm) var(--s-xs);
+  flex: 1;
+  overflow-y: auto;
+}
+/* sliding PS-blue active accent */
+.sidebar .nav .accent {
+  position: absolute;
+  left: 0;
+  width: 3px;
+  height: 42px;
+  background: var(--primary);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  transition: transform 200ms var(--ease), opacity 150ms var(--ease);
+  will-change: transform;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-sm);
+  padding: 0 var(--s-sm);
+  height: 42px;
+  border-radius: var(--r-md);
+  color: var(--on-dark-mute);
+  white-space: nowrap;
+  transition: background 150ms var(--ease), color 150ms var(--ease);
+  cursor: pointer;
+}
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--on-dark);
+}
+.nav-item.active {
+  color: var(--on-dark);
+  background: rgba(0, 112, 209, 0.16);
+}
+.nav-item .ico {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+}
+.nav-item .label {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  opacity: 1;
+  transition: opacity 150ms var(--ease);
+}
+.collapsed .nav-item .label {
+  opacity: 0;
+  pointer-events: none;
+}
+.sidebar .collapse-btn {
+  margin: var(--s-xs);
+  padding: var(--s-xs) var(--s-sm);
+  height: 42px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--on-dark-mute);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--s-sm);
+  transition: background 150ms var(--ease);
+}
+.sidebar .collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--on-dark);
+}
+.sidebar .collapse-btn .label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* --- Content column ------------------------------------------------------- */
+.content-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--canvas-light);
+}
+
+/* ============================================================================
+   Top bar — light canvas, flat, hairline divider
+   ============================================================================ */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--topbar-h);
+  background: var(--canvas-light);
+  border-bottom: 1px solid var(--hairline-light);
+  display: flex;
+  align-items: center;
+  gap: var(--s-md);
+  padding: 0 var(--s-lg);
+}
+.topbar .page-title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 22px;
+  letter-spacing: 0.1px;
+}
+.topbar .spacer {
+  flex: 1;
+}
+.topbar .control {
+  display: flex;
+  align-items: center;
+  gap: var(--s-xs);
+}
+.topbar label.ctl-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute-light);
+  text-transform: uppercase;
+  letter-spacing: 0.324px;
+}
+
+/* Month selector as a light filter-pill */
+.month-select {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-full);
+  background: var(--canvas-light);
+  color: var(--ink);
+  cursor: pointer;
+}
+.month-select:focus-visible {
+  border-color: var(--primary);
+  outline: none;
+}
+
+/* ₹ toggle as a segmented filter-pill pair */
+.rupee-toggle {
+  display: inline-flex;
+  background: var(--surface-soft);
+  border-radius: var(--r-full);
+  padding: 3px;
+}
+.rupee-toggle button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.324px;
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  color: var(--body-light);
+  cursor: pointer;
+  border-radius: var(--r-full);
+  transition: background 150ms var(--ease), color 150ms var(--ease);
+}
+.rupee-toggle button.on {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+/* coverage dots — badge-info vocabulary */
+.coverage {
+  display: flex;
+  align-items: center;
+  gap: var(--s-xs);
+}
+.cov-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--body-light);
+}
+.cov-dot .d {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-full);
+}
+.cov-dot .d.on {
+  background: var(--primary);
+}
+.cov-dot .d.off {
+  background: var(--warning);
+}
+
+/* --- Page container ------------------------------------------------------- */
+.page {
+  padding: var(--s-xl);
+  animation: pageFade 150ms var(--ease) both;
+}
+@keyframes pageFade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+h1.page-h {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 35px;
+  letter-spacing: 0;
+  line-height: 1.25;
+  margin: 0 0 var(--s-xs);
+}
+.page-sub {
+  color: var(--body-light);
+  font-size: 16px;
+  margin: 0 0 var(--s-xl);
+}
+.subtle {
+  color: var(--body-light);
+}
+
+/* --- Panels / cards (flat, no resting shadow) ----------------------------- */
+.panel {
+  background: var(--surface-card);
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-md);
+  padding: var(--s-lg);
+}
+
+/* ============================================================================
+   KPI cards — flat feature cards, PS-blue top keyline
+   ============================================================================ */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--s-lg);
+  margin-bottom: var(--s-lg);
+}
+.kpi {
+  background: var(--surface-card);
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-md);
+  padding: var(--s-lg);
+  border-top: 3px solid var(--primary);
+}
+.kpi .k {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute-light);
+  text-transform: uppercase;
+  letter-spacing: 0.324px;
+  margin-bottom: var(--s-sm);
+}
+.kpi .v {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 34px;
+  letter-spacing: -0.1px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.kpi .v .unit {
+  font-size: 16px;
+  color: var(--mute-light);
+  font-weight: 400;
+  margin-left: 4px;
+}
+.kpi.neg .v {
+  color: var(--warning);
+}
+
+/* ============================================================================
+   Elimination strip — flat cool card
+   ============================================================================ */
+.elim-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-xl);
+  padding: var(--s-md) var(--s-lg);
+  background: var(--surface-card);
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-md);
+  margin-bottom: var(--s-md);
+}
+.elim-strip .item .k {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute-light);
+  text-transform: uppercase;
+  letter-spacing: 0.324px;
+}
+.elim-strip .item .v {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* ============================================================================
+   Warning banner — PS warning #c81b3a, flat, slides down
+   ============================================================================ */
+.warn-banner {
+  display: flex;
+  gap: var(--s-sm);
+  align-items: flex-start;
+  background: #fdeef1;
+  border: 1px solid var(--warning);
+  color: var(--warning);
+  border-radius: var(--r-md);
+  padding: var(--s-md) var(--s-lg);
+  margin-bottom: var(--s-md);
+  animation: slideDown 240ms var(--ease) both;
+  overflow: hidden;
+}
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    max-height: 220px;
+  }
+}
+.warn-banner .wico {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-full);
+  background: var(--warning);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+.warn-banner .wt {
+  font-weight: 700;
+  margin-bottom: 2px;
+  color: var(--warning);
+}
+.warn-banner .wb {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.7);
+}
+.warn-banner .wb strong {
+  color: var(--warning);
+}
+
+/* ============================================================================
+   P&L table — light canvas, hairline dividers, PS-blue consolidated column
+   ============================================================================ */
+.pl-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-md);
+  background: var(--canvas-light);
+}
+table.pl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+table.pl th,
+table.pl td {
+  padding: 11px var(--s-md);
+  white-space: nowrap;
+}
+table.pl thead th {
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.324px;
+  color: var(--mute-light);
+  border-bottom: 1px solid var(--hairline-light);
+  background: var(--surface-soft);
+}
+table.pl thead th.rowhead {
+  text-align: left;
+}
+table.pl td.rowhead {
+  text-align: left;
+  color: var(--ink);
+}
+table.pl td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+table.pl td.neg {
+  color: var(--warning);
+}
+table.pl tbody tr.line td {
+  border-bottom: 1px solid var(--hairline-light);
+  color: var(--body-light);
+}
+table.pl tbody tr.line td.rowhead {
+  color: var(--body-light);
+}
+table.pl tbody tr.subtotal td {
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface-soft);
+  border-top: 1px solid var(--hairline-light);
+  border-bottom: 1px solid var(--hairline-light);
+}
+table.pl tbody tr.subtotal.major td {
+  background: #eef4fb;
+}
+table.pl td.pct {
+  color: var(--primary);
+  font-weight: 600;
+}
+table.pl .col-consol {
+  background: rgba(0, 112, 209, 0.06);
+  font-weight: 600;
+  color: var(--ink);
+}
+table.pl thead th.col-consol {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+table.pl thead th.col-elim {
+  color: var(--warning);
+}
+
+/* ============================================================================
+   Company cards — flat product cards
+   ============================================================================ */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  gap: var(--s-lg);
+}
+.company-card {
+  background: var(--surface-card);
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-md);
+  padding: var(--s-lg);
+  position: relative;
+  transition: box-shadow 150ms var(--ease), transform 150ms var(--ease);
+}
+/* cards lift only on press (PS elevation rule) */
+.company-card:active {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+}
+.company-card.archived {
+  opacity: 0.7;
+  background: var(--surface-soft);
+}
+.company-card .swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  margin-bottom: var(--s-sm);
+}
+.company-card .cname {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 20px;
+  letter-spacing: 0.1px;
+}
+.company-card .cshort {
+  color: var(--mute-light);
+  font-size: 13px;
+  margin-bottom: var(--s-md);
+}
+.company-card .meta {
+  display: flex;
+  gap: var(--s-md);
+  font-size: 13px;
+  color: var(--body-light);
+  border-top: 1px solid var(--hairline-light);
+  padding-top: var(--s-sm);
+}
+.company-card .meta b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.company-card .arch-btn {
+  position: absolute;
+  top: var(--s-md);
+  right: var(--s-md);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.324px;
+  padding: 6px 14px;
+  border: 1px solid var(--ash-light);
+  background: transparent;
+  border-radius: var(--r-full);
+  cursor: pointer;
+  color: var(--ink);
+  transition: background 150ms var(--ease);
+}
+.company-card .arch-btn:hover {
+  background: var(--surface-soft);
+}
+.badge-archived {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.324px;
+  color: var(--mute-light);
+  background: var(--surface-soft);
+  border-radius: var(--r-full);
+  padding: 2px 10px;
+  margin-left: var(--s-xs);
+}
+
+/* --- Buttons (PS pill vocabulary) ----------------------------------------- */
+.btn-primary {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.324px;
+  padding: 12px 28px;
+  height: 48px;
+  border: none;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  color: var(--on-primary);
+  cursor: pointer;
+  transition: background 150ms var(--ease);
+}
+.btn-primary:hover {
+  background: var(--primary-pressed);
+}
+.btn-primary:active {
+  background: var(--primary-active);
+}
+.btn-ghost {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.324px;
+  padding: 12px 28px;
+  height: 48px;
+  border: 1px solid var(--ash-light);
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* --- Modal (16px radius container, flat) ---------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  animation: overlayFade 150ms var(--ease) both;
+}
+@keyframes overlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.modal {
+  width: min(460px, 92vw);
+  background: var(--canvas-light);
+  border-radius: var(--r-lg);
+  padding: var(--s-xl);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+  animation: modalIn 200ms var(--ease) both;
+}
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.modal h2 {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 28px;
+  letter-spacing: 0.1px;
+  margin: 0 0 var(--s-md);
+}
+.field {
+  margin-bottom: var(--s-md);
+}
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mute-light);
+  margin-bottom: 6px;
+}
+.field input {
+  width: 100%;
+  font: inherit;
+  font-size: 16px;
+  padding: 12px 16px;
+  height: 48px;
+  border: 1px solid var(--ash-light);
+  border-radius: var(--r-sm);
+  background: var(--canvas-light);
+}
+.field input:focus-visible {
+  border: 2px solid var(--primary);
+  outline: none;
+}
+.field .err {
+  color: var(--warning);
+  font-size: 13px;
+  margin-top: 6px;
+}
+.modal-actions {
+  display: flex;
+  gap: var(--s-sm);
+  justify-content: flex-end;
+  margin-top: var(--s-lg);
+}
+
+/* --- Placeholder page ----------------------------------------------------- */
+.placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 50vh;
+  text-align: center;
+  color: var(--body-light);
+}
+.placeholder .ph-ico {
+  font-size: 30px;
+  margin-bottom: var(--s-sm);
+}
+
+/* --- Empty / no-data ------------------------------------------------------ */
+.empty {
+  padding: var(--s-xxl);
+  text-align: center;
+  color: var(--body-light);
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-md);
+  background: var(--surface-card);
+}
+
+/* --- Trend chart ---------------------------------------------------------- */
+.trend-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.trend-svg .draw-bar {
+  animation: barGrow 500ms var(--ease) both;
+  transform-box: fill-box;
+  transform-origin: bottom;
+}
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+.trend-svg .draw-line {
+  stroke-dasharray: var(--len);
+  stroke-dashoffset: var(--len);
+  animation: dash 700ms var(--ease) 150ms forwards;
+}
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+code {
+  font-family: "Inter", monospace;
+  font-size: 13px;
+  background: var(--surface-soft);
+  border: 1px solid var(--hairline-light);
+  padding: 1px 6px;
+  border-radius: var(--r-sm);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* --- Reduced motion ------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  .trend-svg .draw-line {
+    stroke-dashoffset: 0 !important;
+  }
+}
+
+/* --- Responsive ----------------------------------------------------------- */
+@media (max-width: 640px) {
+  .page {
+    padding: var(--s-md);
+  }
+  .topbar {
+    padding: 0 var(--s-md);
+  }
+}

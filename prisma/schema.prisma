@@ -1,0 +1,138 @@
+// Group MIS Console — Prisma schema (LOCAL Postgres, on-premise).
+//
+// Companies are DATA, not structure: the Company table holds an unlimited,
+// UI-managed list. No company is ever hard-coded. Group companies trade with
+// each other, so inter-company elimination is core logic downstream.
+//
+// Money is stored as Decimal(18,2) for exact currency math (never Float).
+//
+// Re-upload rule: a given (companyId, period, fileType) is unique on Upload —
+// re-uploading the same combination REPLACES the prior upload and its rows.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Postgres (Neon) for the deployed environment on Vercel. Money uses
+// @db.Decimal(18,2) for exact currency math. Enum-like fields remain String
+// (validated in lib/enums.ts) and PartyAlias.aliases stays a JSON String — both
+// work identically on Postgres and keep the schema portable to SQLite for local
+// dev by flipping provider back to "sqlite" and dropping the @db.Decimal attrs.
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled (runtime)
+  directUrl = env("DIRECT_URL") // unpooled (migrations)
+}
+
+// NOTE: SQLite does not support Prisma enums, so the enum-like fields below are
+// stored as String. The allowed values are defined and type-checked in code
+// (see lib/enums.ts):
+//   PLLine   = Revenue | OtherIncome | PurchasesCOGS | DirectExpenses | Employee
+//              | SellingDistribution | AdminOther | Finance | Depreciation | Tax
+//              | BalanceSheetOrIgnore
+//   FileType = TrialBalance | NoteDayBook | Outstandings
+//   PartySide= Debtor | Creditor
+// On a move back to PostgreSQL these can be restored as real enums.
+
+/// A group company. DATA, not structure — add/archive from the UI with zero
+/// code changes. Unlimited count.
+model Company {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  shortName  String   @unique
+  chartColor String // hex color used to identify this company in charts
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  uploads        Upload[]
+  tbEntries      TBEntry[]
+  noteVouchers   NoteVoucher[]
+  partyBalances  PartyBalance[]
+  ledgerMappings LedgerMapping[]
+
+  @@index([isActive])
+}
+
+/// One manual upload of a Tally export for a company + period + file type.
+/// Uniqueness enforces the "re-upload replaces" rule at the DB level.
+model Upload {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  period     String // reporting period, e.g. "2026-06" (YYYY-MM)
+  fileType   String // FileType: TrialBalance | NoteDayBook | Outstandings
+  uploadedAt DateTime @default(now())
+
+  @@unique([companyId, period, fileType])
+  @@index([companyId, period])
+}
+
+/// A Trial Balance line: one ledger's debit/credit for a company + period.
+model TBEntry {
+  id          String  @id @default(cuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  period      String // YYYY-MM
+  ledgerName  String
+  parentGroup String // Tally parent group this ledger sits under
+  debit       Decimal @default(0) @db.Decimal(18, 2)
+  credit      Decimal @default(0) @db.Decimal(18, 2)
+
+  @@index([companyId, period])
+  @@index([ledgerName])
+}
+
+/// A Debit/Credit Note voucher from the note day book.
+model NoteVoucher {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  period      String // YYYY-MM
+  date        DateTime
+  voucherType String // e.g. "Debit Note", "Credit Note"
+  voucherNo   String
+  partyName   String
+  amount      Decimal @db.Decimal(18, 2)
+  @@index([companyId, period])
+  @@index([partyName])
+}
+
+/// A party's closing balance and ageing buckets (outstandings) for a period.
+model PartyBalance {
+  id             String    @id @default(cuid())
+  companyId      String
+  company        Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  period         String // YYYY-MM
+  side           String // PartySide: Debtor | Creditor
+  partyName      String
+  closingBalance Decimal @db.Decimal(18, 2)
+  ageing0_30     Decimal @default(0) @db.Decimal(18, 2)
+  ageing31_60    Decimal @default(0) @db.Decimal(18, 2)
+  ageing61_90    Decimal @default(0) @db.Decimal(18, 2)
+  ageing90plus   Decimal @default(0) @db.Decimal(18, 2)
+
+  @@index([companyId, period])
+  @@index([partyName])
+}
+
+/// Maps a company's ledger name to a P&L line and marks inter-company ledgers.
+/// Inter-company ledgers are what get eliminated in the combined group view.
+model LedgerMapping {
+  id             String  @id @default(cuid())
+  companyId      String
+  company        Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ledgerName     String
+  plLine         String // PLLine value (see lib/enums.ts)
+  isInterCompany Boolean @default(false)
+
+  @@unique([companyId, ledgerName])
+  @@index([companyId])
+}
+
+/// Canonical party name and its known aliases, so the same party spelled
+/// differently across companies/exports reconciles to one entity.
+model PartyAlias {
+  id            String   @id @default(cuid())
+  canonicalName String   @unique
+  aliases       String // JSON array of alternate spellings (SQLite has no String[])
+}
