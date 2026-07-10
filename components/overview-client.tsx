@@ -91,7 +91,7 @@ export function OverviewClient({ data }: { data: OverviewDTO }) {
 
       {/* --- KPI cards with count-up --- */}
       <div className="kpi-row">
-        <div className="kpi">
+        <div className="kpi" style={{ ["--i" as string]: 0 }}>
           <div className="k">Consolidated Revenue</div>
           <div className="v">
             <CountUp
@@ -101,19 +101,22 @@ export function OverviewClient({ data }: { data: OverviewDTO }) {
             <span className="unit">{unit}</span>
           </div>
         </div>
-        <div className="kpi">
+        <div className="kpi" style={{ ["--i" as string]: 1 }}>
           <div className="k">Gross Margin %</div>
           <div className="v">
             <CountUp value={data.kpis.grossMarginPct} render={(n) => `${n.toFixed(1)}%`} />
           </div>
         </div>
-        <div className="kpi">
+        <div className="kpi" style={{ ["--i" as string]: 2 }}>
           <div className="k">EBITDA Margin %</div>
           <div className="v">
             <CountUp value={data.kpis.ebitdaMarginPct} render={(n) => `${n.toFixed(1)}%`} />
           </div>
         </div>
-        <div className={`kpi${data.kpis.netProfit < 0 ? " neg" : ""}`}>
+        <div
+          className={`kpi${data.kpis.netProfit < 0 ? " neg" : ""}`}
+          style={{ ["--i" as string]: 3 }}
+        >
           <div className="k">Net Profit</div>
           <div className="v">
             <CountUp value={data.kpis.netProfit} render={(n) => formatRupee(n, rupeeMode)} />
@@ -123,7 +126,7 @@ export function OverviewClient({ data }: { data: OverviewDTO }) {
       </div>
 
       {/* --- Elimination strip --- */}
-      <div className="elim-strip">
+      <div className="elim-strip reveal" style={{ ["--i" as string]: 4 }}>
         <div className="item">
           <div className="k">Inter-company turnover eliminated</div>
           <div className="v">{formatRupee(data.icTurnoverEliminated, rupeeMode)}</div>
@@ -134,14 +137,17 @@ export function OverviewClient({ data }: { data: OverviewDTO }) {
         </div>
         <div className="item">
           <div className="k">Net elimination gap</div>
-          <div className="v" style={{ color: data.hasMismatch ? "var(--neg)" : "inherit" }}>
+          <div
+            className="v"
+            style={{ color: data.hasMismatch ? "var(--warning)" : "inherit" }}
+          >
             {formatRupee(data.icGap, rupeeMode)}
           </div>
         </div>
       </div>
 
       {/* --- Consolidated P&L table --- */}
-      <div className="pl-wrap">
+      <div className="pl-wrap reveal" style={{ ["--i" as string]: 5 }}>
         <table className="pl">
           <thead>
             <tr>
@@ -162,7 +168,11 @@ export function OverviewClient({ data }: { data: OverviewDTO }) {
             {ROWS.map((row, i) => {
               if (row.kind === "subtotal") {
                 return (
-                  <tr key={i} className={`subtotal${row.major ? " major" : ""}`}>
+                  <tr
+                    key={i}
+                    className={`subtotal${row.major ? " major" : ""}`}
+                    style={{ ["--i" as string]: i }}
+                  >
                     <td className="rowhead">
                       {row.label}
                       {["grossProfit", "ebitda", "netProfit"].includes(row.field) && (
@@ -191,7 +201,7 @@ export function OverviewClient({ data }: { data: OverviewDTO }) {
               }
               // line row
               return (
-                <tr key={i} className="line">
+                <tr key={i} className="line" style={{ ["--i" as string]: i }}>
                   <td className="rowhead">{row.label}</td>
                   {data.columns.map((c) => {
                     const raw = c.byLine[row.line];
@@ -217,7 +227,7 @@ export function OverviewClient({ data }: { data: OverviewDTO }) {
       </div>
 
       {/* --- Trend chart --- */}
-      <div className="panel" style={{ marginTop: 18 }}>
+      <div className="panel reveal" style={{ marginTop: 18, ["--i" as string]: 6 }}>
         <div style={{ fontWeight: 600, marginBottom: 6 }}>
           Consolidated trend — last {data.trend.length} months
         </div>

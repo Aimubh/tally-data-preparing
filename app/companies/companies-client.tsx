@@ -40,10 +40,11 @@ export function CompaniesClient({ cards }: { cards: CompanyCard[] }) {
         </div>
       ) : (
         <div className="card-grid">
-          {cards.map((c) => (
+          {cards.map((c, idx) => (
             <div
               key={c.id}
-              className={`company-card${c.isActive ? "" : " archived"}`}
+              className={`company-card reveal${c.isActive ? "" : " archived"}`}
+              style={{ ["--i" as string]: idx }}
             >
               <button
                 className="arch-btn"
