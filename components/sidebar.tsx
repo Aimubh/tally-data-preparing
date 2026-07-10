@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { NAV_ITEMS } from "./nav-config";
 import { Icon } from "./icons";
 import { useUIState } from "./ui-state";
+import { logout } from "@/app/login/actions";
 
 export function Sidebar({ groupName }: { groupName: string }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [signingOut, startSignOut] = useTransition();
   const { sidebarCollapsed, toggleSidebar } = useUIState();
   const navRef = useRef<HTMLDivElement>(null);
   const [accent, setAccent] = useState<{ y: number; show: boolean }>({
@@ -90,6 +93,23 @@ export function Sidebar({ groupName }: { groupName: string }) {
           }}
         />
         <span className="label">Collapse</span>
+      </button>
+
+      <button
+        className="collapse-btn signout-btn"
+        onClick={() =>
+          startSignOut(async () => {
+            await logout();
+            router.push("/login");
+            router.refresh();
+          })
+        }
+        disabled={signingOut}
+        aria-label="Sign out"
+        title="Sign out"
+      >
+        <Icon name="logout" />
+        <span className="label">{signingOut ? "Signing out…" : "Sign out"}</span>
       </button>
     </aside>
   );

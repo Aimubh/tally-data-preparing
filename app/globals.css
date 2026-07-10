@@ -244,6 +244,13 @@ a {
   font-size: 14px;
   font-weight: 500;
 }
+.sidebar .signout-btn {
+  margin-top: 0;
+}
+.sidebar .signout-btn:hover {
+  background: rgba(229, 72, 77, 0.16);
+  color: #ff9ba0;
+}
 
 /* --- Content column ------------------------------------------------------- */
 .content-col {
@@ -1156,6 +1163,73 @@ code {
 .welcome-scroll .chev {
   font-size: 20px;
   animation: bob 1.8s var(--ease) infinite;
+}
+
+/* --- Login card (shares the welcome starfield) --- */
+.login-inner {
+  max-width: 420px;
+}
+.login-title {
+  font-size: clamp(30px, 5vw, 44px);
+  margin-bottom: 10px;
+}
+.login-sub {
+  margin-bottom: 30px;
+  font-size: 15px;
+}
+.login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-lg);
+  padding: 26px 24px;
+  backdrop-filter: blur(6px);
+}
+.login-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 7px;
+}
+.login-field input {
+  width: 100%;
+  font: inherit;
+  font-size: 15px;
+  padding: 12px 14px;
+  height: 46px;
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
+}
+.login-field input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+.login-field input:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 112, 209, 0.25);
+}
+.login-error {
+  color: #ff6b73;
+  font-size: 13px;
+  background: rgba(255, 60, 70, 0.1);
+  border: 1px solid rgba(255, 60, 70, 0.3);
+  border-radius: var(--r-sm);
+  padding: 9px 12px;
+  animation: fadeDown 200ms var(--ease) both;
+}
+.login-cta {
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
 }
 @keyframes bob {
   0%,

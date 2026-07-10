@@ -5,7 +5,7 @@ import { Sidebar } from "./sidebar";
 import { useUIState } from "./ui-state";
 
 // Routes that render full-bleed WITHOUT the dashboard chrome (sidebar/topbar).
-const CHROMELESS = ["/welcome"];
+const CHROMELESS = ["/welcome", "/login"];
 
 // Client shell wrapper: applies the collapsed class (from remembered UI state)
 // around the sidebar + content column. The TopBar is rendered per-page (its

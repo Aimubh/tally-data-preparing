@@ -38,6 +38,27 @@ source (XML) can be slotted in without touching reports.
 
 Run: `npm run dev` → http://localhost:3400
 
+## Authentication
+
+The whole app is **gated by admin login** (`middleware.ts`). Unauthenticated
+visitors are redirected to `/login`; `/login` and `/welcome` are the only public
+routes.
+
+- **Admin** model (Prisma): email + bcrypt `passwordHash`. Seed/bootstrap via
+  `npm run seed:admin` (idempotent upsert from `ADMIN_EMAIL`/`ADMIN_PASSWORD`
+  env). The deploy build runs it automatically.
+- **Session:** signed JWT (`jose`, HS256, 8h) in an HTTP-only cookie
+  (`gmis_session`). `lib/session.ts` is edge-safe (used by middleware);
+  `lib/auth.ts` is Node-only (bcrypt verify, cookie set/clear).
+- **Login/logout:** `app/login/actions.ts`. Sign-out button is in the sidebar.
+- **Env (all gitignored / in Vercel):** `AUTH_SECRET` (JWT signing key),
+  `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
+- **Default dev admin:** `admin@groupmis.local` / `GroupMIS@2026` — ⚠ CHANGE THIS
+  before real use (update `ADMIN_PASSWORD` env + re-run `seed:admin`, and rotate
+  `AUTH_SECRET`).
+- **/login & /welcome** share the cinematic starfield (`components/starfield.tsx`);
+  successful login warps into the dashboard.
+
 ## Companies are DATA, never structure
 
 Companies live in the `Company` table (`id, name, shortName, chartColor,

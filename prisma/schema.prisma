@@ -136,3 +136,13 @@ model PartyAlias {
   canonicalName String   @unique
   aliases       String // JSON array of alternate spellings (SQLite has no String[])
 }
+
+/// An admin who can sign in to the console. Passwords are bcrypt-hashed —
+/// never stored in plaintext. Auth gates the whole app (see middleware.ts).
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+}

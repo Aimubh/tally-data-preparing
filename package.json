@@ -5,7 +5,7 @@
   "description": "Consolidation MIS for a business group — Tally-export ingestion, inter-company elimination, company-scoped reports.",
   "scripts": {
     "dev": "next dev -p 3400",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "prisma generate && prisma migrate deploy && tsx prisma/seed-admin.ts && next build",
     "start": "next start -p 3400",
     "lint": "next lint",
     "postinstall": "prisma generate",
@@ -13,18 +13,23 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
-    "seed:clear": "tsx prisma/seed.ts --clear"
+    "seed:clear": "tsx prisma/seed.ts --clear",
+    "seed:admin": "tsx prisma/seed-admin.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.3",
     "next": "^15.1.6",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
