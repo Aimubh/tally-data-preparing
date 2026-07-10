@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addCompany, setArchived } from "./actions";
+import { addCompany, setArchived, deleteCompany } from "./actions";
 import { monthLabel } from "@/lib/format";
 import type { CompanyCard } from "@/lib/mis";
 
@@ -11,10 +11,28 @@ export function CompaniesClient({ cards }: { cards: CompanyCard[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
+  // Delete flow: which company is pending confirmation, delete-in-progress, error.
+  const [confirmDelete, setConfirmDelete] = useState<CompanyCard | null>(null);
+  const [deleting, startDelete] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   function toggleArchive(id: string, archived: boolean) {
     startTransition(async () => {
       await setArchived(id, archived);
       router.refresh();
+    });
+  }
+
+  function doDelete(c: CompanyCard) {
+    setDeleteError(null);
+    startDelete(async () => {
+      const res = await deleteCompany(c.id);
+      if (res.ok) {
+        setConfirmDelete(null);
+        router.refresh();
+      } else {
+        setDeleteError(res.error ?? "Could not delete the company.");
+      }
     });
   }
 
@@ -46,14 +64,27 @@ export function CompaniesClient({ cards }: { cards: CompanyCard[] }) {
               className={`company-card reveal${c.isActive ? "" : " archived"}`}
               style={{ ["--i" as string]: idx }}
             >
-              <button
-                className="arch-btn"
-                onClick={() => toggleArchive(c.id, c.isActive)}
-                disabled={pending}
-                title={c.isActive ? "Archive company" : "Unarchive company"}
-              >
-                {c.isActive ? "Archive" : "Unarchive"}
-              </button>
+              <div className="card-actions">
+                <button
+                  className="arch-btn"
+                  onClick={() => toggleArchive(c.id, c.isActive)}
+                  disabled={pending}
+                  title={c.isActive ? "Archive company" : "Unarchive company"}
+                >
+                  {c.isActive ? "Archive" : "Unarchive"}
+                </button>
+                <button
+                  className="del-btn"
+                  onClick={() => {
+                    setDeleteError(null);
+                    setConfirmDelete(c);
+                  }}
+                  title="Delete company and all its data"
+                  aria-label={`Delete ${c.name} and all its data`}
+                >
+                  Delete
+                </button>
+              </div>
               <div
                 className="swatch"
                 style={{ background: c.chartColor }}
@@ -87,6 +118,58 @@ export function CompaniesClient({ cards }: { cards: CompanyCard[] }) {
             router.refresh();
           }}
         />
+      )}
+
+      {/* Confirm-delete-company dialog (destructive: cascades all its data) */}
+      {confirmDelete && (
+        <div
+          className="modal-overlay"
+          onClick={() => !deleting && setConfirmDelete(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm delete company"
+        >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Delete {confirmDelete.shortName}?</h2>
+            <p style={{ margin: "0 0 8px", color: "var(--muted)" }}>
+              This permanently deletes <strong>{confirmDelete.name}</strong> and{" "}
+              <strong>all of its data</strong> — every upload, trial balance,
+              sales/purchase voucher, note, debtor/creditor balance, and expense
+              across all {confirmDelete.monthsPresent} month
+              {confirmDelete.monthsPresent === 1 ? "" : "s"}.
+            </p>
+            <p style={{ margin: "0 0 6px", fontSize: 13, color: "var(--warning)", fontWeight: 600 }}>
+              This cannot be undone.
+            </p>
+            <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>
+              Tip: if you only want to hide it while keeping history, use{" "}
+              <strong>Archive</strong> instead.
+            </p>
+            {deleteError && (
+              <div className="field" style={{ marginTop: 10 }}>
+                <div className="err">{deleteError}</div>
+              </div>
+            )}
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => setConfirmDelete(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-danger"
+                onClick={() => doDelete(confirmDelete)}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting…" : "Delete company & data"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

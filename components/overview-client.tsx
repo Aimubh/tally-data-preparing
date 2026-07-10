@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useUIState } from "./ui-state";
 import { CountUp } from "./count-up";
 import { TrendChart } from "./trend-chart";
@@ -36,6 +37,12 @@ export interface OverviewDTO {
     netProfit: number;
   };
   trend: TrendPoint[];
+  gst: {
+    output: number; // GST collected on sales (outgoing / payable)
+    input: number; // GST paid on purchases (ingoing / credit)
+    net: number; // output − input
+    components: { component: string; output: number; input: number; net: number }[];
+  };
 }
 
 // P&L row spec: either a line (value pulled from byLine) or a computed subtotal.
@@ -63,9 +70,11 @@ const ROWS: RowSpec[] = [
 export function OverviewClient({ data }: { data: OverviewDTO }) {
   const { rupeeMode } = useUIState();
   const unit = rupeeMode === "lakh" ? "₹ L" : "₹";
+  const [showGst, setShowGst] = useState(false);
 
   const consol = data.columns.find((c) => c.isConsolidated);
   const revForPct = consol?.byLine.Revenue ?? 0;
+  const gstRefund = data.gst.net < 0;
 
   return (
     <>
@@ -144,6 +153,76 @@ export function OverviewClient({ data }: { data: OverviewDTO }) {
             {formatRupee(data.icGap, rupeeMode)}
           </div>
         </div>
+      </div>
+
+      {/* --- GST check panel: click to reveal group GST in/out + net --- */}
+      <div className="gst-check">
+        <button
+          className={`gst-check-toggle${showGst ? " on" : ""}`}
+          onClick={() => setShowGst((v) => !v)}
+          aria-expanded={showGst}
+        >
+          <span className="gc-check" aria-hidden="true">{showGst ? "✓" : ""}</span>
+          Check GST (in / out) for {monthLabel(data.period)}
+          <span className="gc-caret" aria-hidden="true">{showGst ? "▲" : "▼"}</span>
+        </button>
+
+        {showGst && (
+          <div className="gst-check-body">
+            <div className="gst-flow">
+              <div className="gst-flow-card out">
+                <div className="gf-dir">▲ Outgoing</div>
+                <div className="gf-label">Output GST — collected on sales</div>
+                <div className="gf-value">₹{formatRupee(data.gst.output, rupeeMode)}</div>
+              </div>
+              <div className="gst-flow-card in">
+                <div className="gf-dir">▼ Ingoing</div>
+                <div className="gf-label">Input GST — paid on purchases (credit)</div>
+                <div className="gf-value">₹{formatRupee(data.gst.input, rupeeMode)}</div>
+              </div>
+              <div className={`gst-flow-card net ${gstRefund ? "refund" : "payable"}`}>
+                <div className="gf-dir">{gstRefund ? "Refund due" : "Net payable"}</div>
+                <div className="gf-label">Net GST = Output − Input</div>
+                <div className="gf-value">₹{formatRupee(Math.abs(data.gst.net), rupeeMode)}</div>
+                <div className="gf-sub">
+                  {formatRupee(data.gst.output, rupeeMode)} − {formatRupee(data.gst.input, rupeeMode)}
+                </div>
+              </div>
+            </div>
+            <div className="pl-wrap" style={{ marginTop: 12 }}>
+              <table className="pl">
+                <thead>
+                  <tr>
+                    <th className="rowhead">Component</th>
+                    <th className="num">Output</th>
+                    <th className="num">Input</th>
+                    <th className="num">Net</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.gst.components.map((c) => (
+                    <tr key={c.component} className="line">
+                      <td className="rowhead">{c.component}</td>
+                      <td className="num">{c.output ? formatRupee(c.output, rupeeMode) : "—"}</td>
+                      <td className="num">{c.input ? formatRupee(c.input, rupeeMode) : "—"}</td>
+                      <td className={`num${c.net < 0 ? " neg" : ""}`} style={{ fontWeight: 600 }}>
+                        {c.net ? formatRupee(Math.abs(c.net), rupeeMode) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="subtotal major">
+                    <td className="rowhead">Total GST</td>
+                    <td className="num">{formatRupee(data.gst.output, rupeeMode)}</td>
+                    <td className="num">{formatRupee(data.gst.input, rupeeMode)}</td>
+                    <td className={`num${gstRefund ? " neg" : ""}`}>
+                      {formatRupee(Math.abs(data.gst.net), rupeeMode)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* --- Consolidated P&L table --- */}

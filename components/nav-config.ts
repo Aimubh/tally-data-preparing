@@ -14,6 +14,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/debtors", label: "Debtors", icon: "debtors", real: false },
   { href: "/creditors", label: "Creditors", icon: "creditors", real: false },
   { href: "/other-expenses", label: "Other Expenses", icon: "expenses", real: false },
+  { href: "/gst", label: "GST", icon: "gst", real: true },
   { href: "/uploads", label: "Uploads", icon: "uploads", real: false },
   { href: "/companies", label: "Companies", icon: "companies", real: true },
   { href: "/settings", label: "Settings", icon: "settings", real: false },

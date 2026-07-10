@@ -6,6 +6,7 @@ import {
   kpisFromConsolidated,
   getTrend,
 } from "@/lib/mis";
+import { getGst } from "@/lib/reports";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,9 @@ export default async function OverviewPage({
   searchParams: Promise<{ month?: string }>;
 }) {
   const { month } = await searchParams;
-  const { months, selectedMonth, coverage } = await resolvePageContext(month);
+  // page-context (months/coverage) and the trend are independent — overlap them.
+  const [ctx, trend] = await Promise.all([resolvePageContext(month), getTrend()]);
+  const { months, selectedMonth, coverage } = ctx;
 
   // No data at all → empty state (nothing seeded / migrated yet).
   if (!selectedMonth) {
@@ -33,9 +36,11 @@ export default async function OverviewPage({
     );
   }
 
-  const pl = await getConsolidatedPL(selectedMonth);
+  const [pl, gst] = await Promise.all([
+    getConsolidatedPL(selectedMonth),
+    getGst(selectedMonth, "all"), // group GST for the dashboard panel
+  ]);
   const kpis = kpisFromConsolidated(pl);
-  const trend = await getTrend();
 
   // Convert to a serializable DTO for the client component.
   const data: OverviewDTO = {
@@ -59,6 +64,17 @@ export default async function OverviewPage({
     hasMismatch: pl.hasMismatch,
     kpis,
     trend,
+    gst: {
+      output: gst.outputTotal,
+      input: gst.inputTotal,
+      net: gst.netPayable,
+      components: gst.components.map((c) => ({
+        component: c.component,
+        output: c.outputGst,
+        input: c.inputGst,
+        net: c.netGst,
+      })),
+    },
   };
 
   return (

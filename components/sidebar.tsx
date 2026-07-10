@@ -43,29 +43,35 @@ export function Sidebar({ groupName }: { groupName: string }) {
 
   return (
     <aside className="sidebar">
+      {/* Top: logo + brand name + expand(→) / collapse(×) toggle */}
       <div className="group-head">
         <span className="group-logo">GM</span>
         <span className="group-name">{groupName}</span>
+        <button
+          className="sb-toggle"
+          onClick={toggleSidebar}
+          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={sidebarCollapsed ? "Expand" : "Collapse"}
+        >
+          <Icon name={sidebarCollapsed ? "expand" : "close"} />
+        </button>
       </div>
 
       <nav className="nav" ref={navRef}>
         <span
           className="accent"
           style={{
-            transform: `translateY(${accent.y + 0}px)`,
+            transform: `translateY(${accent.y}px)`,
             opacity: accent.show ? 1 : 0,
           }}
         />
         {NAV_ITEMS.map((item) => {
           const isActive = item.href === activeHref;
-          const cls = `nav-item${isActive ? " active" : ""}${
-            item.real ? "" : ""
-          }`;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={cls}
+              className={`nav-item${isActive ? " active" : ""}`}
               data-href={item.href}
               title={item.label}
               aria-current={isActive ? "page" : undefined}
@@ -79,38 +85,27 @@ export function Sidebar({ groupName }: { groupName: string }) {
         })}
       </nav>
 
-      <button
-        className="collapse-btn"
-        onClick={toggleSidebar}
-        aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        title={sidebarCollapsed ? "Expand" : "Collapse"}
-      >
-        <Icon
-          name="collapse"
-          style={{
-            transform: sidebarCollapsed ? "rotate(180deg)" : "none",
-            transition: "transform 200ms cubic-bezier(0.22,0.61,0.36,1)",
-          }}
-        />
-        <span className="label">Collapse</span>
-      </button>
-
-      <button
-        className="collapse-btn signout-btn"
-        onClick={() =>
-          startSignOut(async () => {
-            await logout();
-            router.push("/login");
-            router.refresh();
-          })
-        }
-        disabled={signingOut}
-        aria-label="Sign out"
-        title="Sign out"
-      >
-        <Icon name="logout" />
-        <span className="label">{signingOut ? "Signing out…" : "Sign out"}</span>
-      </button>
+      {/* Footer: sign out */}
+      <div className="sb-footer">
+        <button
+          className="nav-item signout-btn"
+          onClick={() =>
+            startSignOut(async () => {
+              await logout();
+              router.push("/login");
+              router.refresh();
+            })
+          }
+          disabled={signingOut}
+          aria-label="Sign out"
+          title="Sign out"
+        >
+          <span className="ico">
+            <Icon name="logout" />
+          </span>
+          <span className="label">{signingOut ? "Signing out…" : "Sign out"}</span>
+        </button>
+      </div>
     </aside>
   );
 }

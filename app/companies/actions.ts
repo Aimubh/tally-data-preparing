@@ -76,3 +76,44 @@ export async function setArchived(
   revalidatePath("/");
   return { ok: true };
 }
+
+/**
+ * Permanently delete a company AND all of its data. The schema's onDelete:
+ * Cascade on every Company relation means removing the Company row also removes
+ * its uploads, TB entries, sales/purchase vouchers, notes, party balances,
+ * ledger mappings, and expenses in one operation.
+ *
+ * DESTRUCTIVE — the caller must confirm first. Returns a count of what was
+ * removed so the UI can report it.
+ */
+export interface DeleteCompanyResult extends ActionResult {
+  companyName?: string;
+  removed?: number; // total data rows removed across all tables
+}
+
+export async function deleteCompany(companyId: string): Promise<DeleteCompanyResult> {
+  if (!companyId) return { ok: false, error: "Missing company id." };
+
+  const company = await prisma.company.findUnique({ where: { id: companyId } });
+  if (!company) return { ok: false, error: "Company not found (already deleted?)." };
+
+  // Count what will cascade away, for an honest confirmation message.
+  const [tb, up, sv, pv, nv, pb, lm, ex] = await Promise.all([
+    prisma.tBEntry.count({ where: { companyId } }),
+    prisma.upload.count({ where: { companyId } }),
+    prisma.salesVoucher.count({ where: { companyId } }),
+    prisma.purchaseVoucher.count({ where: { companyId } }),
+    prisma.noteVoucher.count({ where: { companyId } }),
+    prisma.partyBalance.count({ where: { companyId } }),
+    prisma.ledgerMapping.count({ where: { companyId } }),
+    prisma.expenseEntry.count({ where: { companyId } }),
+  ]);
+  const removed = tb + up + sv + pv + nv + pb + lm + ex;
+
+  // One delete — cascade removes all related rows.
+  await prisma.company.delete({ where: { id: companyId } });
+
+  revalidatePath("/companies");
+  revalidatePath("/");
+  return { ok: true, companyName: company.name, removed };
+}

@@ -18,8 +18,9 @@ import type { PLLine } from "@/lib/enums";
 // lowercased substrings tested against the ledger name. Order matters — more
 // specific lines (e.g. Finance "interest on loan") are checked before broad ones.
 const RULES: { line: PLLine; keywords: string[] }[] = [
-  // Revenue
-  { line: "Revenue", keywords: ["sales", "revenue", "turnover"] },
+  // Revenue — includes singular "sale" (real Tally books use "…-Sale" ledgers),
+  // and "supply -sale". Kept above OtherIncome/Purchases so "-Sale" wins.
+  { line: "Revenue", keywords: ["sales", "revenue", "turnover", "-sale", " sale", "supply -sale"] },
   // Other Income (before generic income words)
   { line: "OtherIncome", keywords: ["interest received", "discount received", "other income", "rent received", "commission received", "indirect income"] },
   // Purchases / COGS
@@ -42,15 +43,27 @@ const RULES: { line: PLLine; keywords: string[] }[] = [
   { line: "BalanceSheetOrIgnore", keywords: ["debtors", "creditors", "bank", "cash", "gst", "tds", "duties", "taxes payable", "plant", "machinery", "fixed asset", "current asset", "current liab", "loan", "capital", "reserve", "provision", "deposit", "advance"] },
 ];
 
+// Hard overrides — exact ledger names that always map to a fixed P&L line,
+// checked BEFORE keyword rules. "Profit & Loss A/c" is Tally's carried-forward
+// P&L balance ledger and must never count as income/expense — always ignore it.
+const EXACT_OVERRIDES: Record<string, PLLine> = {
+  "profit & loss a/c": "BalanceSheetOrIgnore",
+  "profit and loss a/c": "BalanceSheetOrIgnore",
+};
+
 /**
- * Classify a ledger name to a P&L line via keyword rules.
- * Falls back to AdminOther for unrecognised expense-like ledgers so nothing is
- * silently dropped; the caller can surface "unclassified" if needed.
+ * Classify a ledger name to a P&L line.
+ * 1) exact-name overrides (e.g. "Profit & Loss A/c" → Balance-Sheet/Ignore),
+ * 2) keyword rules,
+ * 3) fallback to AdminOther so nothing is silently dropped (caller can flag it).
  */
 export function classifyPLLine(ledgerName: string): PLLine {
-  const n = ledgerName.toLowerCase();
+  const trimmed = ledgerName.trim().toLowerCase();
+  const override = EXACT_OVERRIDES[trimmed];
+  if (override) return override;
+
   for (const rule of RULES) {
-    if (rule.keywords.some((k) => n.includes(k))) return rule.line;
+    if (rule.keywords.some((k) => trimmed.includes(k))) return rule.line;
   }
   // Unknown: treat as Admin & Other (an expense bucket) rather than dropping.
   return "AdminOther";

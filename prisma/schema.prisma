@@ -44,11 +44,15 @@ model Company {
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
 
-  uploads        Upload[]
-  tbEntries      TBEntry[]
-  noteVouchers   NoteVoucher[]
-  partyBalances  PartyBalance[]
-  ledgerMappings LedgerMapping[]
+  uploads          Upload[]
+  tbEntries        TBEntry[]
+  noteVouchers     NoteVoucher[]
+  partyBalances    PartyBalance[]
+  ledgerMappings   LedgerMapping[]
+  salesVouchers    SalesVoucher[]
+  purchaseVouchers PurchaseVoucher[]
+  expenseEntries   ExpenseEntry[]
+  gstEntries       GstEntry[]
 
   @@index([isActive])
 }
@@ -145,4 +149,70 @@ model Admin {
   name         String
   passwordHash String
   createdAt    DateTime @default(now())
+}
+
+/// A sales voucher (from Tally's Sales Register) — one invoice line.
+model SalesVoucher {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  period      String // YYYY-MM
+  date        DateTime
+  voucherType String // e.g. "Sales", "Sales - Export"
+  voucherNo   String
+  partyName   String
+  isInterCompany Boolean @default(false) // true if the party is another group company
+  amount      Decimal  @db.Decimal(18, 2)
+
+  @@index([companyId, period])
+  @@index([partyName])
+}
+
+/// A purchase voucher (from Tally's Purchase Register) — one bill line.
+model PurchaseVoucher {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  period      String // YYYY-MM
+  date        DateTime
+  voucherType String // e.g. "Purchase", "Purchase - Import"
+  voucherNo   String
+  partyName   String
+  isInterCompany Boolean @default(false)
+  amount      Decimal  @db.Decimal(18, 2)
+
+  @@index([companyId, period])
+  @@index([partyName])
+}
+
+/// An indirect-expense line for the Other Expenses board.
+model ExpenseEntry {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  period     String // YYYY-MM
+  ledgerName String // e.g. "Office Rent", "Legal & Professional Fees"
+  category   String // grouping shown on the board, e.g. "Admin & Other"
+  amount     Decimal  @db.Decimal(18, 2)
+
+  @@index([companyId, period])
+}
+
+/// A GST line for the GST board. `kind` splits the two directions:
+///   Output = GST COLLECTED on sales (outgoing — payable to the government)
+///   Input  = GST PAID on purchases (ingoing — an input-tax credit you claim)
+/// Net GST payable = Σ Output − Σ Input.
+model GstEntry {
+  id           String  @id @default(cuid())
+  companyId    String
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  period       String // YYYY-MM
+  kind         String // "Output" (sales) | "Input" (purchases)
+  component    String // "IGST" | "CGST" | "SGST"
+  ratePct      Int // e.g. 18, 12, 5
+  taxableValue Decimal @db.Decimal(18, 2) // the value the GST is charged on
+  gstAmount    Decimal @db.Decimal(18, 2) // the GST itself
+
+  @@index([companyId, period])
+  @@index([kind])
 }

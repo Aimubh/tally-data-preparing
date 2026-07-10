@@ -136,16 +136,21 @@ function emptyByLine(): Record<PLLine, number> {
   };
 }
 
-async function getCompanyPL(
+// A minimal TB entry row (fetched in bulk, then computed in memory).
+interface TBRow {
+  companyId: string;
+  ledgerName: string;
+  debit: unknown;
+  credit: unknown;
+}
+
+// Pure in-memory computation — takes pre-fetched entries for ONE company in ONE
+// period. No DB access, so callers can bulk-fetch once and compute many months.
+function computeCompanyPL(
   company: CompanyLite,
   allCompanies: CompanyLite[],
-  period: string
-): Promise<CompanyPL> {
-  const entries = await prisma.tBEntry.findMany({
-    where: { companyId: company.id, period },
-    select: { ledgerName: true, debit: true, credit: true },
-  });
-
+  entries: TBRow[]
+): CompanyPL {
   const byLine = emptyByLine();
   let icRevenue = 0;
   let icPurchases = 0;
@@ -220,12 +225,13 @@ function subtotalsFor(byLine: Record<PLLine, number>) {
   return { grossProfit, ebitda, pbt, netProfit };
 }
 
-export async function getConsolidatedPL(period: string): Promise<ConsolidatedPL> {
-  const active = await getActiveCompanies();
-  const perCompany = await Promise.all(
-    active.map((c) => getCompanyPL(c, active, period))
-  );
-
+// Build the ConsolidatedPL for one period from already-computed per-company PLs.
+// Pure — no DB access.
+function assembleConsolidatedPL(
+  period: string,
+  active: CompanyLite[],
+  perCompany: CompanyPL[]
+): ConsolidatedPL {
   // Company columns: only those WITH data this month.
   const columns: PLColumn[] = [];
   for (let i = 0; i < active.length; i++) {
@@ -285,6 +291,28 @@ export async function getConsolidatedPL(period: string): Promise<ConsolidatedPL>
   };
 }
 
+// Group bulk-fetched TB rows by companyId → per-company entry arrays.
+function groupByCompany(active: CompanyLite[], rows: TBRow[]): Map<string, TBRow[]> {
+  const map = new Map<string, TBRow[]>();
+  for (const c of active) map.set(c.id, []);
+  for (const r of rows) map.get(r.companyId)?.push(r);
+  return map;
+}
+
+export async function getConsolidatedPL(period: string): Promise<ConsolidatedPL> {
+  const active = await getActiveCompanies();
+  // ONE query for all companies' entries this period (was 1 + N).
+  const rows = await prisma.tBEntry.findMany({
+    where: { period },
+    select: { companyId: true, ledgerName: true, debit: true, credit: true },
+  });
+  const byCompany = groupByCompany(active, rows);
+  const perCompany = active.map((c) =>
+    computeCompanyPL(c, active, byCompany.get(c.id) ?? [])
+  );
+  return assembleConsolidatedPL(period, active, perCompany);
+}
+
 // --- KPIs for the selected month (consolidated) ------------------------------
 export interface OverviewKPIs {
   consolidatedRevenue: number;
@@ -313,20 +341,46 @@ export interface TrendPoint {
   revenue: number;
   grossPct: number;
   netPct: number;
+  grossProfit: number; // consolidated ₹ amount
+  netProfit: number; // consolidated ₹ amount (negative = loss)
 }
 
 export async function getTrend(): Promise<TrendPoint[]> {
-  const months = await getMonths();
+  const active = await getActiveCompanies();
+  // TWO queries total (was 6 × (1 + N) ≈ 24): all months in one shot, then
+  // compute every month's consolidation in memory.
+  const allRows = await prisma.tBEntry.findMany({
+    select: { companyId: true, period: true, ledgerName: true, debit: true, credit: true },
+  });
+
+  // Group rows by period, then by company.
+  const byPeriod = new Map<string, TBRow[]>();
+  for (const r of allRows) {
+    const arr = byPeriod.get(r.period);
+    if (arr) arr.push(r);
+    else byPeriod.set(r.period, [r]);
+  }
+  const months = [...byPeriod.keys()].sort();
+
   const points: TrendPoint[] = [];
   for (const period of months) {
-    const pl = await getConsolidatedPL(period);
+    const rows = byPeriod.get(period) ?? [];
+    const byCompany = groupByCompany(active, rows);
+    const perCompany = active.map((c) =>
+      computeCompanyPL(c, active, byCompany.get(c.id) ?? [])
+    );
+    const pl = assembleConsolidatedPL(period, active, perCompany);
     const consol = pl.columns.find((c) => c.isConsolidated);
     const rev = consol?.byLine.Revenue ?? 0;
+    const grossProfit = consol?.grossProfit ?? 0;
+    const netProfit = consol?.netProfit ?? 0;
     points.push({
       period,
       revenue: rev,
-      grossPct: rev ? ((consol?.grossProfit ?? 0) / rev) * 100 : 0,
-      netPct: rev ? ((consol?.netProfit ?? 0) / rev) * 100 : 0,
+      grossPct: rev ? (grossProfit / rev) * 100 : 0,
+      netPct: rev ? (netProfit / rev) * 100 : 0,
+      grossProfit,
+      netProfit,
     });
   }
   return points;

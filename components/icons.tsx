@@ -59,6 +59,12 @@ const paths: Record<string, React.ReactNode> = {
       <path d="M3 10h18M7 15h4" />
     </>
   ),
+  gst: (
+    <>
+      <path d="M5 3h14a1 1 0 0 1 1 1v17l-3-2-3 2-3-2-3 2-3-2V4a1 1 0 0 1 1-1z" />
+      <path d="M9 8l6 6M9.5 8.5v.01M14.5 13.5v.01" />
+    </>
+  ),
   uploads: (
     <>
       <path d="M12 15V4" />
@@ -89,6 +95,18 @@ const paths: Record<string, React.ReactNode> = {
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <path d="M16 17l5-5-5-5" />
       <path d="M21 12H9" />
+    </>
+  ),
+  expand: (
+    <>
+      <path d="M5 12h14" />
+      <path d="M13 6l6 6-6 6" />
+    </>
+  ),
+  close: (
+    <>
+      <path d="M6 6l12 12" />
+      <path d="M18 6L6 18" />
     </>
   ),
 };

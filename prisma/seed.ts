@@ -154,13 +154,27 @@ async function main() {
   const tbRows: Prisma.TBEntryCreateManyInput[] = [];
   const uploadRows: Prisma.UploadCreateManyInput[] = [];
 
+  // One deliberate LOSS month so the trend chart's Net Profit/Loss line dips
+  // below zero (red) — otherwise every month is a profit and the loss styling
+  // is never visible. The 3rd month gets slashed revenue + inflated expenses.
+  const lossMonth = months[2];
+
   // Regular ledgers for every company × month.
   for (const company of companies) {
     const s = scale.get(company.id) ?? 1;
     for (const period of months) {
       uploadRows.push({ companyId: company.id, period, fileType: "TrialBalance" });
+      const isLoss = period === lossMonth;
       for (const l of LEDGERS) {
-        const amt = Math.round(randBetween(l.min, l.max) * s);
+        let amt = Math.round(randBetween(l.min, l.max) * s);
+        // In the loss month: cut income (credit/revenue-side) sharply and push
+        // up expenses (debit-side P&L) so the group nets a loss.
+        if (isLoss) {
+          const isIncome = l.side === "credit" && l.parentGroup.includes("Sales");
+          const isExpense = l.side === "debit" && l.parentGroup.includes("Expenses");
+          if (isIncome) amt = Math.round(amt * 0.45);
+          else if (isExpense) amt = Math.round(amt * 1.7);
+        }
         tbRows.push({
           companyId: company.id,
           period,

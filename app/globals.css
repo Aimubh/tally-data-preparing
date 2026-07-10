@@ -13,6 +13,9 @@
   --on-primary: #ffffff;
   --commerce: #d53b00;
   --commerce-pressed: #aa2f00;
+  /* Teal active accent (from the Dribbble sidebar) — paired with PS blue chrome */
+  --teal: #14b8a6;
+  --teal-soft: rgba(20, 184, 166, 0.16);
 
   /* --- Surface: dark chrome --- */
   --canvas-dark: #000000;
@@ -94,121 +97,161 @@ a {
   line-height: 1.25;
 }
 
-/* --- App layout ----------------------------------------------------------- */
+/* ============================================================================
+   App layout — floating sidebar (Dribbble "Expand Animation" shape, PS palette)
+   ============================================================================ */
 .app-shell {
+  --sb-gap: 16px;
   display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
-  min-height: 100vh;
-  transition: grid-template-columns 220ms var(--ease);
+  grid-template-columns: calc(var(--sidebar-w) + var(--sb-gap) * 2) 1fr;
+  height: 100vh; /* fixed viewport: the content column scrolls internally, so the
+                    floating cards' shadows stay put and don't repaint on scroll */
+  overflow: hidden;
+  background: var(--surface-soft);
+  transition: grid-template-columns 260ms var(--ease);
 }
 .app-shell.collapsed {
-  grid-template-columns: var(--sidebar-w-collapsed) 1fr;
+  grid-template-columns: calc(var(--sidebar-w-collapsed) + var(--sb-gap) * 2) 1fr;
 }
 
-/* ============================================================================
-   Sidebar — PlayStation black chrome
-   ============================================================================ */
+/* The sidebar floats: rounded panel, inset by --sb-gap, its own shadow. */
 .sidebar {
   position: sticky;
-  top: 0;
+  top: var(--sb-gap);
   align-self: start;
-  height: 100vh;
+  height: calc(100vh - var(--sb-gap) * 2);
+  margin: var(--sb-gap);
   background: var(--canvas-dark);
   color: var(--on-dark);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-right: 1px solid var(--hairline-dark);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.55),
+    0 2px 0 rgba(255, 255, 255, 0.04) inset;
+  transition: width 260ms var(--ease);
 }
+
+/* --- Head: logo + brand + expand(→)/collapse(×) toggle --- */
 .sidebar .group-head {
   display: flex;
   align-items: center;
   gap: var(--s-sm);
-  padding: 0 var(--s-md);
-  min-height: var(--topbar-h);
+  padding: 18px 16px;
+  min-height: 68px;
   border-bottom: 1px solid var(--hairline-dark);
 }
 .sidebar .group-logo {
   flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--r-md);
-  background: var(--primary);
-  color: var(--on-primary);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary), var(--teal));
+  color: #fff;
   display: grid;
   place-items: center;
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.4px;
 }
 .sidebar .group-name {
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: 20px;
-  letter-spacing: 0.1px;
+  font-size: 19px;
+  letter-spacing: 0.2px;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
   opacity: 1;
-  transition: opacity 150ms var(--ease);
+  transition: opacity 180ms var(--ease);
 }
 .collapsed .sidebar .group-name {
   opacity: 0;
   pointer-events: none;
 }
+/* toggle: floats top-right when expanded, centers under logo when collapsed */
+.sidebar .sb-toggle {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--on-dark-mute);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 150ms var(--ease), color 150ms var(--ease);
+}
+.sidebar .sb-toggle:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+.collapsed .sidebar .group-head {
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
 
+/* --- Nav --- */
 .sidebar .nav {
   position: relative;
-  padding: var(--s-sm) var(--s-xs);
+  padding: 14px 12px;
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
 }
-/* sliding PS-blue active accent */
+.collapsed .sidebar .nav {
+  padding: 14px 10px;
+}
+/* sliding teal active accent (Dribbble signature), on the left edge */
 .sidebar .nav .accent {
   position: absolute;
   left: 0;
+  top: 0; /* JS translateY positions it relative to the nav's padding box */
   width: 3px;
-  height: 42px;
-  background: var(--primary);
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  transition: transform 200ms var(--ease), opacity 150ms var(--ease);
-  will-change: transform;
+  height: 44px;
+  background: var(--teal);
+  border-radius: 0 3px 3px 0;
+  transition: transform 260ms var(--ease), opacity 180ms var(--ease);
 }
 .nav-item {
   display: flex;
   align-items: center;
-  gap: var(--s-sm);
-  padding: 0 var(--s-sm);
-  height: 42px;
-  border-radius: var(--r-md);
+  gap: 14px;
+  padding: 0 12px;
+  height: 44px;
+  border-radius: 12px;
   color: var(--on-dark-mute);
   white-space: nowrap;
-  transition: background 150ms var(--ease), color 150ms var(--ease),
-    transform 150ms var(--ease);
+  transition: background 160ms var(--ease), color 160ms var(--ease);
   cursor: pointer;
+  overflow: hidden;
 }
 .nav-item:hover {
   background: rgba(255, 255, 255, 0.06);
   color: var(--on-dark);
-  transform: translateX(2px);
 }
 .nav-item.active {
-  color: var(--on-dark);
-  background: rgba(0, 112, 209, 0.16);
+  color: #fff;
+  background: var(--teal-soft);
 }
 .nav-item .ico {
   flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: grid;
   place-items: center;
-  transition: transform 150ms var(--ease), color 150ms var(--ease);
+  transition: transform 160ms var(--ease), color 160ms var(--ease);
 }
 .nav-item:hover .ico {
-  transform: scale(1.12);
-  color: #53b1ff;
+  color: var(--teal);
 }
 .nav-item.active .ico {
-  color: #53b1ff;
+  color: var(--teal);
+  transform: scale(1.05);
 }
 .nav-item .label {
   font-family: var(--font-body);
@@ -216,39 +259,39 @@ a {
   font-weight: 500;
   letter-spacing: 0.1px;
   opacity: 1;
-  transition: opacity 150ms var(--ease);
+  transition: opacity 200ms var(--ease);
+}
+.collapsed .nav-item {
+  gap: 0;
+  padding: 0;
+  justify-content: center;
 }
 .collapsed .nav-item .label {
   opacity: 0;
+  width: 0;
   pointer-events: none;
 }
-.sidebar .collapse-btn {
-  margin: var(--s-xs);
-  padding: var(--s-xs) var(--s-sm);
-  height: 42px;
+
+/* --- Footer: sign out --- */
+.sidebar .sb-footer {
+  padding: 12px;
+  border-top: 1px solid var(--hairline-dark);
+}
+.sidebar .sb-footer .nav-item {
+  width: 100%;
   border: none;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--on-dark-mute);
-  border-radius: var(--r-md);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: var(--s-sm);
-  transition: background 150ms var(--ease);
+  background: transparent;
+  font: inherit;
+  text-align: left;
 }
-.sidebar .collapse-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--on-dark);
-}
-.sidebar .collapse-btn .label {
-  font-size: 14px;
-  font-weight: 500;
-}
-.sidebar .signout-btn {
-  margin-top: 0;
+.collapsed .sidebar .sb-footer .nav-item {
+  justify-content: center;
 }
 .sidebar .signout-btn:hover {
   background: rgba(229, 72, 77, 0.16);
+  color: #ff9ba0;
+}
+.sidebar .signout-btn:hover .ico {
   color: #ff9ba0;
 }
 
@@ -258,6 +301,20 @@ a {
   flex-direction: column;
   min-width: 0;
   background: var(--canvas-light);
+  margin: var(--sb-gap) var(--sb-gap) var(--sb-gap) 0;
+  border-radius: 20px;
+  box-shadow: 0 20px 48px -32px rgba(15, 30, 60, 0.22);
+  /* Scroll INSIDE the card so its shadow stays static; contain isolates paints. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  contain: layout paint;
+  overscroll-behavior: contain;
+}
+/* Round the top bar corners to match the floating content card (no overflow:hidden
+   so the top bar can stay position: sticky). */
+.content-col .topbar {
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
 }
 
 /* ============================================================================
@@ -387,6 +444,26 @@ h1.page-h {
   letter-spacing: 0;
   line-height: 1.25;
   margin: 0 0 var(--s-xs);
+}
+/* Section heading with an optional muted sub-note beside it. */
+.page h2,
+.content-col h2 {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 19px;
+  letter-spacing: 0.1px;
+  margin: var(--s-xl) 0 var(--s-md);
+}
+.h2-note {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--mute-light);
+  letter-spacing: 0.1px;
 }
 .page-sub {
   color: var(--body-light);
@@ -705,6 +782,370 @@ table.pl thead th.col-elim {
 }
 
 /* ============================================================================
+   Upload flow — form, dropzone, review card
+   ============================================================================ */
+.upload-panel {
+  background: var(--surface-card);
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-md);
+  padding: var(--s-lg);
+  margin-bottom: var(--s-lg);
+}
+.upload-fields {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: var(--s-md);
+}
+@media (max-width: 720px) {
+  .upload-fields {
+    grid-template-columns: 1fr;
+  }
+}
+.upload-panel .field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute-light);
+  text-transform: uppercase;
+  letter-spacing: 0.324px;
+  margin-bottom: 6px;
+}
+.upload-panel .field select {
+  width: 100%;
+}
+.upload-kind-hint {
+  font-size: 13px;
+  color: var(--mute-light);
+  margin: 12px 0 6px;
+}
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 130px;
+  margin-top: 8px;
+  padding: 24px;
+  border: 2px dashed var(--border-strong, #cdd6e4);
+  border-radius: var(--r-md);
+  background: var(--canvas-light);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 150ms var(--ease), background 150ms var(--ease);
+}
+.dropzone.over {
+  border-color: var(--primary);
+  background: rgba(0, 112, 209, 0.05);
+}
+.dropzone.has-file {
+  border-style: solid;
+  border-color: var(--primary);
+}
+.dropzone .dz-icon {
+  font-size: 26px;
+  color: var(--primary);
+}
+.dropzone .dz-text {
+  color: var(--mute-light);
+  font-size: 14px;
+}
+.dropzone .dz-file {
+  font-weight: 600;
+  color: var(--ink);
+}
+.upload-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: var(--s-md);
+}
+
+/* Review card */
+.review-card {
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-md);
+  padding: var(--s-lg);
+  margin-bottom: var(--s-lg);
+  background: var(--panel, #fff);
+  animation: revealUp 300ms var(--ease) both;
+}
+.review-card.pass {
+  border-color: rgba(10, 125, 63, 0.4);
+}
+.review-card.fail {
+  border-color: var(--warning);
+}
+.review-verdict {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  margin-bottom: var(--s-md);
+}
+.review-verdict.pass {
+  background: rgba(10, 125, 63, 0.08);
+  color: var(--pos, #0a7d3f);
+}
+.review-verdict.fail {
+  background: #fdeef1;
+  color: var(--warning);
+}
+.review-verdict .rv-ico {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #fff;
+}
+.review-verdict.pass .rv-ico {
+  background: var(--pos, #0a7d3f);
+}
+.review-verdict.fail .rv-ico {
+  background: var(--warning);
+}
+.review-verdict .rv-title {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.review-verdict .rv-msg {
+  font-size: 13px;
+  opacity: 0.95;
+}
+.review-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--hairline-light);
+  border-bottom: 1px solid var(--hairline-light);
+}
+.review-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.review-meta .rm-k {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mute-light);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.review-meta .rm-v {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.review-meta .rm-v.ok {
+  color: var(--pos, #0a7d3f);
+}
+.review-meta .rm-v.bad {
+  color: var(--warning);
+}
+.review-warnings {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #8a6d0b;
+  background: #fff8e6;
+  border: 1px solid #f3e0a0;
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+}
+.review-warnings > div {
+  padding: 2px 0;
+}
+.ic-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(0, 112, 209, 0.1);
+  border-radius: var(--r-full);
+  padding: 1px 8px;
+}
+.review-commit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: var(--s-md);
+}
+.review-commit .commit-note {
+  font-size: 12px;
+  color: var(--mute-light);
+}
+
+/* --- Report board chips (notes, month-on-month) --- */
+.note-chip {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: var(--r-full);
+}
+.note-chip.debit {
+  color: var(--warning);
+  background: rgba(200, 27, 58, 0.1);
+}
+.note-chip.credit {
+  color: var(--pos, #0a7d3f);
+  background: rgba(10, 125, 63, 0.1);
+}
+.mom-chip {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mom-chip.up {
+  color: var(--warning);
+}
+.mom-chip.down {
+  color: var(--pos, #0a7d3f);
+}
+.mom-chip.flat {
+  color: var(--mute-light);
+}
+
+/* --- GST check panel on the Overview (click to reveal) --- */
+.gst-check {
+  margin-bottom: var(--s-md);
+}
+.gst-check-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 16px;
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-md);
+  background: var(--surface-card);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 150ms var(--ease), background 150ms var(--ease);
+}
+.gst-check-toggle:hover {
+  border-color: var(--primary);
+}
+.gst-check-toggle.on {
+  border-color: var(--primary);
+  background: rgba(0, 112, 209, 0.05);
+}
+.gst-check-toggle .gc-check {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--border-strong, #cdd6e4);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  color: #fff;
+  flex: 0 0 auto;
+}
+.gst-check-toggle.on .gc-check {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.gst-check-toggle .gc-caret {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--mute-light);
+}
+.gst-check-body {
+  margin-top: 12px;
+  animation: revealUp 260ms var(--ease) both;
+}
+
+/* --- GST board: Output vs Input vs Net flow cards --- */
+.gst-flow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--s-md);
+  margin-bottom: var(--s-lg);
+}
+.gst-flow-card {
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-md);
+  padding: 18px 20px;
+  background: var(--surface-card);
+  border-top: 3px solid var(--mute-light);
+}
+.gst-flow-card.out {
+  border-top-color: var(--warning);
+}
+.gst-flow-card.in {
+  border-top-color: var(--pos, #0a7d3f);
+}
+.gst-flow-card.net.payable {
+  border-top-color: var(--primary);
+}
+.gst-flow-card.net.refund {
+  border-top-color: var(--pos, #0a7d3f);
+}
+.gst-flow-card .gf-dir {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.gst-flow-card.out .gf-dir {
+  color: var(--warning);
+}
+.gst-flow-card.in .gf-dir {
+  color: var(--pos, #0a7d3f);
+}
+.gst-flow-card.net .gf-dir {
+  color: var(--primary);
+}
+.gst-flow-card.net.refund .gf-dir {
+  color: var(--pos, #0a7d3f);
+}
+.gst-flow-card .gf-label {
+  font-size: 12.5px;
+  color: var(--mute-light);
+  margin-bottom: 10px;
+}
+.gst-flow-card .gf-value {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.gst-flow-card .gf-sub {
+  font-size: 12px;
+  color: var(--mute-light);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Register table (Sales / Journal / Purchase) --- */
+table.pl.register thead th.rowhead {
+  text-align: left;
+}
+table.pl.register td.vch {
+  color: var(--mute-light);
+  font-size: 13px;
+}
+.note-hint {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--mute-light);
+  border-left: 2px solid var(--primary);
+  padding: 4px 0 4px 12px;
+}
+.note-hint code {
+  font-size: 12px;
+}
+
+/* ============================================================================
    Company cards — flat product cards
    ============================================================================ */
 .card-grid {
@@ -769,10 +1210,15 @@ table.pl thead th.col-elim {
   color: var(--ink);
   font-weight: 600;
 }
-.company-card .arch-btn {
+/* Action cluster (Archive + Delete) at the card's top-right. */
+.company-card .card-actions {
   position: absolute;
   top: var(--s-md);
   right: var(--s-md);
+  display: flex;
+  gap: 6px;
+}
+.company-card .arch-btn {
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -787,6 +1233,10 @@ table.pl thead th.col-elim {
 }
 .company-card .arch-btn:hover {
   background: var(--surface-soft);
+}
+/* Delete button uses the shared .del-btn style; tighten padding to match here. */
+.company-card .del-btn {
+  padding: 6px 12px;
 }
 .badge-archived {
   display: inline-block;
@@ -834,6 +1284,45 @@ table.pl thead th.col-elim {
   background: transparent;
   color: var(--ink);
   cursor: pointer;
+}
+/* Danger button (destructive confirm) */
+.btn-danger {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.324px;
+  padding: 12px 24px;
+  height: 48px;
+  border: none;
+  border-radius: var(--r-full);
+  background: var(--warning);
+  color: #fff;
+  cursor: pointer;
+  transition: background 150ms var(--ease);
+}
+.btn-danger:hover:not(:disabled) {
+  background: #a4232a;
+}
+.btn-danger:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+/* Small inline delete link in the uploads table */
+.del-btn {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--warning);
+  cursor: pointer;
+  transition: background 150ms var(--ease), border-color 150ms var(--ease);
+}
+.del-btn:hover {
+  background: rgba(200, 27, 58, 0.08);
+  border-color: rgba(200, 27, 58, 0.4);
 }
 
 /* --- Modal (16px radius container, flat) ---------------------------------- */
@@ -939,10 +1428,136 @@ table.pl thead th.col-elim {
 }
 
 /* --- Trend chart ---------------------------------------------------------- */
+/* --- Chart plot wrapper + hover tooltip --- */
+.chart-plot {
+  position: relative;
+}
+.chart-tooltip {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-50%);
+  min-width: 160px;
+  max-width: 220px;
+  padding: 10px 12px;
+  background: var(--ink-deep, #121314);
+  color: #fff;
+  border-radius: var(--r-sm);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 5;
+  animation: fadeInArea 120ms var(--ease) both;
+}
+/* keep the tooltip inside the card near the edges */
+.chart-tooltip[style*="left: 0"],
+.chart-tooltip {
+  will-change: left;
+}
+.chart-tooltip .ct-month {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 3px;
+}
+.chart-tooltip .ct-net {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 5px;
+}
+.chart-tooltip .ct-net.profit {
+  color: #4ade80;
+}
+.chart-tooltip .ct-net.loss {
+  color: #ff8891;
+}
+.chart-tooltip .ct-row {
+  font-size: 12px;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Chart toolbar + real-time type switcher --- */
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.chart-title-note {
+  font-size: 13px;
+  color: var(--mute-light);
+}
+.chart-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chart-range-select {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--r-full);
+  background: var(--canvas-light);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 150ms var(--ease);
+}
+.chart-range-select:hover {
+  border-color: var(--border-strong, #cdd6e4);
+}
+.chart-range-select:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 112, 209, 0.15);
+}
+.chart-switch {
+  display: inline-flex;
+  background: var(--surface-soft);
+  border-radius: var(--r-full);
+  padding: 3px;
+}
+.chart-switch button {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  padding: 5px 14px;
+  border: none;
+  background: transparent;
+  color: var(--body-light);
+  cursor: pointer;
+  border-radius: var(--r-full);
+  transition: background 150ms var(--ease), color 150ms var(--ease);
+}
+.chart-switch button:hover:not(.on) {
+  color: var(--ink);
+}
+.chart-switch button.on {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
 .trend-svg {
   width: 100%;
   height: auto;
   display: block;
+}
+.trend-svg .draw-area {
+  animation: fadeInArea 500ms var(--ease) 200ms both;
+}
+.trend-svg .draw-pnl {
+  animation: fadeInArea 400ms var(--ease) 300ms both;
+}
+@keyframes fadeInArea {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .trend-svg .draw-bar {
   animation: barGrow 500ms var(--ease) both;
