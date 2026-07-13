@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
+import { CardGlow } from "./card-glow";
 import { useUIState } from "./ui-state";
 
 // Routes that render full-bleed WITHOUT the dashboard chrome (sidebar/topbar).
@@ -27,6 +28,7 @@ export function Shell({
 
   return (
     <div className={`app-shell${sidebarCollapsed ? " collapsed" : ""}`}>
+      <CardGlow />
       <Sidebar groupName={groupName} />
       <div className="content-col">{children}</div>
     </div>

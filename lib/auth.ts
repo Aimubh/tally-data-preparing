@@ -51,3 +51,15 @@ export async function getCurrentAdmin(): Promise<SessionPayload | null> {
   if (!token) return null;
   return verifySessionToken(token);
 }
+
+/**
+ * Read the current admin's DB row (incl. avatarUrl), or null. Use this when you
+ * need fields not carried in the session JWT (e.g. the profile image). Imported
+ * lazily to keep this module free of a hard Prisma dependency at the edge.
+ */
+export async function getCurrentAdminRecord() {
+  const session = await getCurrentAdmin();
+  if (!session) return null;
+  const { prisma } = await import("./prisma");
+  return prisma.admin.findUnique({ where: { id: session.sub } });
+}

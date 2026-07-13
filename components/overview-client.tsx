@@ -1,12 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useUIState } from "./ui-state";
 import { CountUp } from "./count-up";
 import { TrendChart } from "./trend-chart";
 import { formatBracketed, formatRupee, formatPct, monthLabel } from "@/lib/format";
 import type { PLLine } from "@/lib/enums";
 import type { TrendPoint } from "@/lib/mis";
+
+export interface OverviewFilters {
+  companies: { id: string; shortName: string }[];
+  scope: string; // "all" or a company id
+  months: string[]; // available months (ascending)
+  selectedMonth: string;
+}
+
+// P&L "focus" groups for the line filter.
+type PLFocus = "all" | "income" | "expenses" | "profit";
 
 // Serializable P&L payload (Decimals already converted to numbers server-side).
 export interface PLColumnDTO {
@@ -67,17 +78,116 @@ const ROWS: RowSpec[] = [
   { kind: "subtotal", label: "Net Profit", field: "netProfit", major: true },
 ];
 
-export function OverviewClient({ data }: { data: OverviewDTO }) {
+const INCOME_LINES: PLLine[] = ["Revenue", "OtherIncome"];
+
+// Filter the P&L rows by the chosen focus (client-side, instant).
+function rowsForFocus(focus: PLFocus): RowSpec[] {
+  if (focus === "all") return ROWS;
+  if (focus === "profit") return ROWS.filter((r) => r.kind === "subtotal");
+  if (focus === "income")
+    return ROWS.filter((r) => r.kind === "line" && INCOME_LINES.includes(r.line));
+  // expenses = every "less:" line (not income, not subtotals)
+  return ROWS.filter((r) => r.kind === "line" && !INCOME_LINES.includes(r.line));
+}
+
+export function OverviewClient({
+  data,
+  filters,
+}: {
+  data: OverviewDTO;
+  filters: OverviewFilters;
+}) {
   const { rupeeMode } = useUIState();
   const unit = rupeeMode === "lakh" ? "₹ L" : "₹";
   const [showGst, setShowGst] = useState(false);
+  const [focus, setFocus] = useState<PLFocus>("all"); // P&L line filter (client-side)
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
 
   const consol = data.columns.find((c) => c.isConsolidated);
   const revForPct = consol?.byLine.Revenue ?? 0;
   const gstRefund = data.gst.net < 0;
 
+  // --- Filter helpers (company scope + quick-range drive the URL params) ----
+  function setParam(key: string, value: string | null) {
+    const sp = new URLSearchParams(params.toString());
+    if (value === null) sp.delete(key);
+    else sp.set(key, value);
+    router.push(`${pathname}?${sp.toString()}`);
+  }
+  function pickCompany(value: string) {
+    setParam("company", value === "all" ? null : value);
+  }
+  // Quick-range presets set the month (and clear any explicit month for YTD start).
+  function pickRange(preset: "this" | "l3" | "l6" | "ytd") {
+    const ms = filters.months;
+    if (ms.length === 0) return;
+    const latest = ms[ms.length - 1];
+    if (preset === "this") setParam("month", latest);
+    else if (preset === "l3") setParam("month", ms[Math.max(0, ms.length - 3)]);
+    else if (preset === "l6") setParam("month", ms[Math.max(0, ms.length - 6)]);
+    else setParam("month", ms[0]); // YTD → earliest available month
+  }
+
   return (
     <>
+      {/* ================= FILTER BAR ================= */}
+      <div className="filter-bar reveal">
+        <div className="fb-group">
+          <label className="fb-label">Company</label>
+          <select
+            className="month-select"
+            value={filters.scope}
+            onChange={(e) => pickCompany(e.target.value)}
+          >
+            <option value="all">All companies</option>
+            {filters.companies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.shortName}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="fb-group">
+          <label className="fb-label">P&amp;L focus</label>
+          <select
+            className="month-select"
+            value={focus}
+            onChange={(e) => setFocus(e.target.value as PLFocus)}
+          >
+            <option value="all">Full P&amp;L</option>
+            <option value="income">Income only</option>
+            <option value="expenses">Expenses only</option>
+            <option value="profit">Profit subtotals only</option>
+          </select>
+        </div>
+
+        <div className="fb-group">
+          <label className="fb-label">Quick range</label>
+          <div className="fb-presets">
+            <button onClick={() => pickRange("this")}>This month</button>
+            <button onClick={() => pickRange("l3")}>Last 3</button>
+            <button onClick={() => pickRange("l6")}>Last 6</button>
+            <button onClick={() => pickRange("ytd")}>YTD</button>
+          </div>
+        </div>
+
+        {(filters.scope !== "all" || focus !== "all") && (
+          <button
+            className="fb-clear"
+            onClick={() => {
+              setFocus("all");
+              setParam("company", null);
+            }}
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
       {/* --- Warning banner (slides down, stays) --- */}
       {data.hasMismatch && (
         <div className="warn-banner" role="alert">
@@ -244,7 +354,7 @@ export function OverviewClient({ data }: { data: OverviewDTO }) {
             </tr>
           </thead>
           <tbody>
-            {ROWS.map((row, i) => {
+            {rowsForFocus(focus).map((row, i) => {
               if (row.kind === "subtotal") {
                 return (
                   <tr

@@ -5,6 +5,7 @@ import {
   getConsolidatedPL,
   kpisFromConsolidated,
   getTrend,
+  getActiveCompanies,
 } from "@/lib/mis";
 import { getGst } from "@/lib/reports";
 
@@ -13,12 +14,20 @@ export const dynamic = "force-dynamic";
 export default async function OverviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; company?: string }>;
 }) {
-  const { month } = await searchParams;
+  const { month, company } = await searchParams;
   // page-context (months/coverage) and the trend are independent — overlap them.
-  const [ctx, trend] = await Promise.all([resolvePageContext(month), getTrend()]);
+  const [ctx, trend, allCompanies] = await Promise.all([
+    resolvePageContext(month),
+    getTrend(),
+    getActiveCompanies(),
+  ]);
   const { months, selectedMonth, coverage } = ctx;
+
+  // Company scope filter: "all" (group) or a single company id.
+  const scope =
+    company && allCompanies.some((c) => c.id === company) ? company : "all";
 
   // No data at all → empty state (nothing seeded / migrated yet).
   if (!selectedMonth) {
@@ -37,8 +46,8 @@ export default async function OverviewPage({
   }
 
   const [pl, gst] = await Promise.all([
-    getConsolidatedPL(selectedMonth),
-    getGst(selectedMonth, "all"), // group GST for the dashboard panel
+    getConsolidatedPL(selectedMonth, scope),
+    getGst(selectedMonth, scope), // GST respects the company scope too
   ]);
   const kpis = kpisFromConsolidated(pl);
 
@@ -88,10 +97,19 @@ export default async function OverviewPage({
       <div className="page">
         <h1 className="page-h">Overview — Consolidated P&amp;L</h1>
         <p className="page-sub">
-          Group view: inter-company entries excluded and shown separately as
-          eliminations.
+          {scope === "all"
+            ? "Group view: inter-company entries excluded and shown separately as eliminations."
+            : `Standalone view for ${allCompanies.find((c) => c.id === scope)?.shortName ?? ""} (inter-company included).`}
         </p>
-        <OverviewClient data={data} />
+        <OverviewClient
+          data={data}
+          filters={{
+            companies: allCompanies.map((c) => ({ id: c.id, shortName: c.shortName })),
+            scope,
+            months,
+            selectedMonth,
+          }}
+        />
       </div>
     </>
   );

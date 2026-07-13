@@ -37,6 +37,14 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${display.variable} ${body.variable}`}
     >
+      <head>
+        {/* Set the theme before first paint to avoid a light→dark flash. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('gmis.theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');}catch(e){}`,
+          }}
+        />
+      </head>
       <body>
         <UIStateProvider>
           <Shell groupName={GROUP_NAME}>{children}</Shell>

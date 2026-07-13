@@ -299,7 +299,10 @@ function groupByCompany(active: CompanyLite[], rows: TBRow[]): Map<string, TBRow
   return map;
 }
 
-export async function getConsolidatedPL(period: string): Promise<ConsolidatedPL> {
+export async function getConsolidatedPL(
+  period: string,
+  scope: string = "all"
+): Promise<ConsolidatedPL> {
   const active = await getActiveCompanies();
   // ONE query for all companies' entries this period (was 1 + N).
   const rows = await prisma.tBEntry.findMany({
@@ -307,10 +310,30 @@ export async function getConsolidatedPL(period: string): Promise<ConsolidatedPL>
     select: { companyId: true, ledgerName: true, debit: true, credit: true },
   });
   const byCompany = groupByCompany(active, rows);
-  const perCompany = active.map((c) =>
+
+  // COMPANY SCOPE RULE:
+  //   "all"  → group view: every company column + Eliminations + Consolidated.
+  //   single → standalone view: just that company; inter-company INCLUDED
+  //            (so IC tokens are still computed against the other companies, but
+  //            we do NOT eliminate — there's nothing to net against).
+  const inScope =
+    scope === "all" ? active : active.filter((c) => c.id === scope);
+
+  const perCompany = inScope.map((c) =>
     computeCompanyPL(c, active, byCompany.get(c.id) ?? [])
   );
-  return assembleConsolidatedPL(period, active, perCompany);
+
+  if (scope !== "all") {
+    // Single company: for the standalone view, treat IC as included (don't
+    // eliminate). We zero the IC portions so assembleConsolidatedPL produces no
+    // elimination column but still a Consolidated (= the single company) column.
+    perCompany.forEach((p) => {
+      p.icRevenue = 0;
+      p.icPurchases = 0;
+    });
+  }
+
+  return assembleConsolidatedPL(period, inScope, perCompany);
 }
 
 // --- KPIs for the selected month (consolidated) ------------------------------
