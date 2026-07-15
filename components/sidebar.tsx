@@ -8,7 +8,15 @@ import { Icon } from "./icons";
 import { useUIState } from "./ui-state";
 import { logout } from "@/app/login/actions";
 
-export function Sidebar({ groupName }: { groupName: string }) {
+export function Sidebar({
+  groupName,
+  adminName,
+  adminAvatar,
+}: {
+  groupName: string;
+  adminName?: string | null;
+  adminAvatar?: string | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, startSignOut] = useTransition();
@@ -41,12 +49,35 @@ export function Sidebar({ groupName }: { groupName: string }) {
     }
   }, [activeHref, pathname, sidebarCollapsed]);
 
+  // Header shows the signed-in admin (avatar + name); falls back to the group
+  // logo/name when there's no admin (e.g. before first render).
+  const displayName = adminName?.trim() || groupName;
+  const logoInitials = adminName?.trim()
+    ? adminName
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((p) => p[0])
+        .join("")
+        .toUpperCase()
+    : "GM";
+
   return (
     <aside className="sidebar">
-      {/* Top: logo + brand name + expand(→) / collapse(×) toggle */}
+      {/* Top: admin avatar + name + expand(→) / collapse(×) toggle */}
       <div className="group-head">
-        <span className="group-logo">GM</span>
-        <span className="group-name">{groupName}</span>
+        <span className="group-logo">
+          {adminAvatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="group-logo-img" src={adminAvatar} alt="" />
+          ) : (
+            logoInitials
+          )}
+        </span>
+        <span className="group-name" title={displayName}>
+          {displayName}
+        </span>
         <button
           className="sb-toggle"
           onClick={toggleSidebar}

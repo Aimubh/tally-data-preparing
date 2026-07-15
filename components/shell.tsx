@@ -13,9 +13,13 @@ const CHROMELESS = ["/welcome", "/login"];
 // coverage data is month-specific), so this only owns the sidebar + layout grid.
 export function Shell({
   groupName,
+  adminName,
+  adminAvatar,
   children,
 }: {
   groupName: string;
+  adminName?: string | null;
+  adminAvatar?: string | null;
   children: React.ReactNode;
 }) {
   const { sidebarCollapsed } = useUIState();
@@ -29,7 +33,11 @@ export function Shell({
   return (
     <div className={`app-shell${sidebarCollapsed ? " collapsed" : ""}`}>
       <CardGlow />
-      <Sidebar groupName={groupName} />
+      <Sidebar
+        groupName={groupName}
+        adminName={adminName}
+        adminAvatar={adminAvatar}
+      />
       <div className="content-col">{children}</div>
     </div>
   );
