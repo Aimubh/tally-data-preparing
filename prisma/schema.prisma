@@ -148,6 +148,8 @@ model Admin {
   email        String   @unique
   name         String
   passwordHash String
+  avatarUrl    String?  // profile image — Vercel Blob URL, or a base64 data URL fallback
+  designation  String?  // job title / role, shown on the profile card
   createdAt    DateTime @default(now())
 }
 

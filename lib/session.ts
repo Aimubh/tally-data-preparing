@@ -18,9 +18,12 @@ export interface SessionPayload {
   sub: string; // admin id
   email: string;
   name: string;
+  avatarUrl?: string | null; // profile image (Blob URL or data URL); omitted if none
 }
 
 export async function createSessionToken(payload: SessionPayload): Promise<string> {
+  // NOTE: a base64 data-URL avatar can be large; keep it OUT of the JWT (cookies
+  // are size-limited). The sidebar reads the avatar from the DB, not the token.
   return new SignJWT({ email: payload.email, name: payload.name })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(payload.sub)

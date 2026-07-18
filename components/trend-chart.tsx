@@ -18,7 +18,7 @@ type RangeMode = "3" | "6" | "all" | "month";
 
 const TYPES: { value: ChartType; label: string }[] = [
   { value: "combo", label: "Combo" },
-  { value: "bar", label: "Bar" },
+  { value: "bar", label: "Profit / Loss" },
   { value: "area", label: "Line" },
   { value: "margins", label: "Margins" },
 ];
@@ -40,10 +40,10 @@ function monthLabelLong(period: string): string {
   });
 }
 
-// PlayStation palette.
-const GROSS = "#0070d1";
-const NET = "#0a7d3f";
-const BAR = "#c9d6e6";
+// PlayStation palette. Combo overlays four metrics, so each gets a distinct hue:
+// Revenue = PS blue, Gross% = amber, Net% = violet, Net P/L = green/red.
+const GROSS = "#e08a00"; // Gross Margin % — amber (distinct from the blue Revenue area)
+const NET = "#7b3fe4"; // Net Margin % — violet (distinct from the green Net P/L line)
 const AREA_STROKE = "#0070d1";
 // Net Profit/Loss line colors: green when in profit, red when in loss.
 const PROFIT_LOSS = { profit: "#0a7d3f", loss: "#c81b3a" };
@@ -96,8 +96,10 @@ export function TrendChart({ points: allPoints }: { points: TrendPoint[] }) {
   const barW = Math.min(slot * 0.5, 46);
   const xCenter = (i: number) => padL + slot * i + slot / 2;
 
-  const showRevenue = type === "combo" || type === "bar" || type === "area";
+  // "bar" is now a standalone Net Profit / Loss view (green profit, red loss).
+  const showRevenue = type === "combo" || type === "area";
   const showMargins = type === "combo" || type === "margins";
+  const isPnl = type === "bar";
 
   // Revenue axis (left).
   const maxRev = Math.max(...points.map((p) => p.revenue), 1);
@@ -123,6 +125,17 @@ export function TrendChart({ points: allPoints }: { points: TrendPoint[] }) {
   const yZero = yNet(0);
   const hasLoss = netMin < 0;
 
+  // Full-height signed scale for the standalone Profit/Loss bar view: bars grow
+  // UP from a shared zero baseline in green (profit) and DOWN in red (loss).
+  const barPnlMax = Math.max(...nets, 0);
+  const barPnlMin = Math.min(...nets, 0);
+  const barPnlSpan = barPnlMax - barPnlMin || 1;
+  const yBarPnl = (v: number) =>
+    padT + plotH - ((v - barPnlMin) / barPnlSpan) * plotH;
+  const yBarZero = yBarPnl(0);
+  const PROFIT_GREEN = PROFIT_LOSS.profit;
+  const LOSS_RED = PROFIT_LOSS.loss;
+
   const linePath = (yFn: (v: number) => number, key: "grossPct" | "netPct" | "revenue") =>
     points.map((p, i) => `${i === 0 ? "M" : "L"}${xCenter(i)},${yFn(p[key])}`).join(" ");
 
@@ -131,12 +144,40 @@ export function TrendChart({ points: allPoints }: { points: TrendPoint[] }) {
     points.map((p, i) => `L${xCenter(i)},${yRev(p.revenue)}`).join(" ") +
     ` L${xCenter(n - 1)},${padT + plotH} Z`;
 
+  // --- Smooth (Catmull-Rom → cubic Bézier) paths for the Combo area view -----
+  // Gives the flowing "natural" curve of the shadcn interactive area chart while
+  // staying pure SVG. Returns just the stroke path for the given metric.
+  const smoothStroke = (yFn: (v: number) => number, key: "revenue") => {
+    const pts = points.map((p, i) => [xCenter(i), yFn(p[key])] as const);
+    if (pts.length < 2) return pts.length ? `M${pts[0][0]},${pts[0][1]}` : "";
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] ?? pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] ?? p2;
+      const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+      const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+      const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += ` C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
+    }
+    return d;
+  };
+  // Closed fill = smooth stroke + down to baseline + back to start.
+  const smoothArea = (yFn: (v: number) => number, key: "revenue") =>
+    `${smoothStroke(yFn, key)} L${xCenter(n - 1)},${padT + plotH} L${xCenter(0)},${
+      padT + plotH
+    } Z`;
+
   const approxLen = Math.round(plotW * 1.3);
 
   // Left-axis labels reflect the primary metric of the current type: revenue for
   // revenue-bearing types, percent for the margins-only view.
   const leftAxisValue = (f: number) =>
-    showRevenue
+    isPnl
+      ? formatRupee(barPnlMin + barPnlSpan * f, rupeeMode)
+      : showRevenue
       ? formatRupee(maxRev * f, rupeeMode)
       : `${(minPct + pctSpan * f).toFixed(0)}%`;
 
@@ -198,6 +239,14 @@ export function TrendChart({ points: allPoints }: { points: TrendPoint[] }) {
         role="img"
         aria-label={`Consolidated trend, ${type} view`}
       >
+        <defs>
+          {/* Gradient fill for the Combo revenue area (shadcn-style fade). */}
+          <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={AREA_STROKE} stopOpacity={0.35} />
+            <stop offset="95%" stopColor={AREA_STROKE} stopOpacity={0.03} />
+          </linearGradient>
+        </defs>
+
         {/* gridlines + left axis */}
         {[0, 0.25, 0.5, 0.75, 1].map((f) => {
           const y = padT + plotH - f * plotH;
@@ -211,24 +260,59 @@ export function TrendChart({ points: allPoints }: { points: TrendPoint[] }) {
           );
         })}
 
-        {/* Revenue bars (combo, bar) */}
-        {(type === "combo" || type === "bar") &&
-          points.map((p, i) => {
-            const h = (p.revenue / maxRev) * plotH;
-            return (
-              <rect
-                key={p.period}
-                className="draw-bar"
-                x={xCenter(i) - barW / 2}
-                y={padT + plotH - h}
-                width={barW}
-                height={h}
-                rx={3}
-                fill={BAR}
-                style={{ animationDelay: `${i * 40}ms` }}
-              />
-            );
-          })}
+        {/* Combo: smooth Revenue area with gradient fill (shadcn-style) */}
+        {type === "combo" && (
+          <>
+            <path d={smoothArea(yRev, "revenue")} fill="url(#fillRevenue)" className="draw-area" />
+            <path
+              className="draw-line"
+              d={smoothStroke(yRev, "revenue")}
+              fill="none"
+              stroke={AREA_STROKE}
+              strokeWidth={2.5}
+              style={{ ["--len" as string]: `${approxLen}` }}
+            />
+            {points.map((p, i) => (
+              <circle key={`rev-${p.period}`} cx={xCenter(i)} cy={yRev(p.revenue)} r={3} fill={AREA_STROKE} />
+            ))}
+          </>
+        )}
+
+        {/* Net Profit / Loss bars (bar view): green up from zero, red down */}
+        {isPnl && (
+          <>
+            {/* emphasised zero baseline */}
+            <line
+              x1={padL}
+              y1={yBarZero}
+              x2={W - padR}
+              y2={yBarZero}
+              stroke="#b7c2d4"
+              strokeWidth={1.5}
+            />
+            {points.map((p, i) => {
+              const loss = p.netProfit < 0;
+              const top = loss ? yBarZero : yBarPnl(p.netProfit);
+              const h = Math.max(Math.abs(yBarPnl(p.netProfit) - yBarZero), 1);
+              return (
+                <rect
+                  key={p.period}
+                  className="draw-bar"
+                  x={xCenter(i) - barW / 2}
+                  y={top}
+                  width={barW}
+                  height={h}
+                  rx={3}
+                  fill={loss ? LOSS_RED : PROFIT_GREEN}
+                  style={{
+                    animationDelay: `${i * 40}ms`,
+                    transformOrigin: loss ? "top" : "bottom",
+                  }}
+                />
+              );
+            })}
+          </>
+        )}
 
         {/* Revenue area (area/line type) */}
         {type === "area" && (
@@ -352,7 +436,13 @@ export function TrendChart({ points: allPoints }: { points: TrendPoint[] }) {
             />
             <circle
               cx={xCenter(hover)}
-              cy={points[hover].netProfit < 0 ? padT + plotH - 4 : yRev(points[hover].revenue)}
+              cy={
+                isPnl
+                  ? yBarPnl(points[hover].netProfit)
+                  : points[hover].netProfit < 0
+                  ? padT + plotH - 4
+                  : yRev(points[hover].revenue)
+              }
               r={5}
               fill={points[hover].netProfit < 0 ? "#c81b3a" : "#0070d1"}
               stroke="#fff"
@@ -402,8 +492,14 @@ export function TrendChart({ points: allPoints }: { points: TrendPoint[] }) {
 
       {/* Adaptive legend */}
       <div style={{ display: "flex", gap: 18, marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
-        {(type === "combo" || type === "bar") && (
-          <Legend color={BAR} label="Consolidated Revenue" swatch="bar" />
+        {type === "combo" && (
+          <Legend color={AREA_STROKE} label="Consolidated Revenue" swatch="line" />
+        )}
+        {isPnl && (
+          <>
+            <Legend color={PROFIT_LOSS.profit} label="Net Profit (surplus)" swatch="bar" />
+            <Legend color={PROFIT_LOSS.loss} label="Net Loss (deficit)" swatch="bar" />
+          </>
         )}
         {type === "area" && (
           <Legend color={AREA_STROKE} label="Consolidated Revenue" swatch="line" />

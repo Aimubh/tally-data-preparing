@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
+import { CardGlow } from "./card-glow";
 import { useUIState } from "./ui-state";
 
 // Routes that render full-bleed WITHOUT the dashboard chrome (sidebar/topbar).
@@ -12,9 +13,13 @@ const CHROMELESS = ["/welcome", "/login"];
 // coverage data is month-specific), so this only owns the sidebar + layout grid.
 export function Shell({
   groupName,
+  adminName,
+  adminAvatar,
   children,
 }: {
   groupName: string;
+  adminName?: string | null;
+  adminAvatar?: string | null;
   children: React.ReactNode;
 }) {
   const { sidebarCollapsed } = useUIState();
@@ -27,7 +32,12 @@ export function Shell({
 
   return (
     <div className={`app-shell${sidebarCollapsed ? " collapsed" : ""}`}>
-      <Sidebar groupName={groupName} />
+      <CardGlow />
+      <Sidebar
+        groupName={groupName}
+        adminName={adminName}
+        adminAvatar={adminAvatar}
+      />
       <div className="content-col">{children}</div>
     </div>
   );
